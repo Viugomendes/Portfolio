@@ -7,7 +7,7 @@ configuration:
   analytics:
     provider: plausible
   locale: en-US
-  baseUrl: Viugomendes.github.io/Portfolio
+  baseUrl: viugomendes.github.io/Portfolio
   ignorePatterns:
     - private
     - templates
