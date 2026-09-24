@@ -7,7 +7,7 @@ configuration:
   analytics:
     provider: plausible
   locale: en-US
-  baseUrl: Viugomendes.github.io/quartz
+  baseUrl: Viugomendes.github.io/Portfolio
   ignorePatterns:
     - private
     - templates
