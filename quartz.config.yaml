@@ -160,8 +160,8 @@ plugins:
   - source: "@quartz-community/explorer"
     enabled: true
     layout:
-      position: left
-      priority: 50
+      position: right
+      priority: 5
   - source: "@quartz-community/graph"
     enabled: true
     layout:
@@ -170,7 +170,7 @@ plugins:
   - source: "@quartz-community/search"
     enabled: true
     layout:
-      position: left
+      position: right
       priority: 20
       group: toolbar
       groupOptions:
