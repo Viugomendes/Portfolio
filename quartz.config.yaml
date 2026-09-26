@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=./quartz/plugins/quartz-plugins.schema.json
 configuration:
-  pageTitle: Mi Portfolio
+  pageTitle: Portfolio
   pageTitleSuffix: ""
   enableSPA: true
   enablePopovers: true
@@ -159,9 +159,13 @@ plugins:
     enabled: true
   - source: "@quartz-community/explorer"
     enabled: true
+    options:
+      folderClickBehavior: collapse
+      folderDefaultState: collapsed
+      useSavedState: false
     layout:
-      position: right
-      priority: 5
+      position: header
+      priority: 20
   - source: "@quartz-community/graph"
     enabled: true
     layout:
@@ -170,11 +174,8 @@ plugins:
   - source: "@quartz-community/search"
     enabled: true
     layout:
-      position: right
-      priority: 20
-      group: toolbar
-      groupOptions:
-        grow: true
+      position: header
+      priority: 30
   - source: "@quartz-community/backlinks"
     enabled: true
     layout:
@@ -198,7 +199,7 @@ plugins:
   - source: "@quartz-community/page-title"
     enabled: true
     layout:
-      position: left
+      position: header
       priority: 10
   - source: "@quartz-community/darkmode"
     enabled: true
