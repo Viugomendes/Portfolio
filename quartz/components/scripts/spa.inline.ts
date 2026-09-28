@@ -40,6 +40,129 @@ function notifyNav(url: FullSlug) {
   document.dispatchEvent(event)
 }
 
+function closeExplorerDropdownsAfterRender() {
+  const explorerLists = document.querySelectorAll(".page-header .explorer-ul")
+  if (explorerLists.length === 0) return
+
+  const observer = new MutationObserver((mutations) => {
+    const renderedTree = mutations.some((mutation) =>
+      Array.from(mutation.addedNodes).some(
+        (node) => node instanceof Element && !node.classList.contains("overflow-end"),
+      ),
+    )
+    if (!renderedTree) return
+
+    document
+      .querySelectorAll(".page-header .explorer-ul > li > .folder-outer.open")
+      .forEach((menu) => menu.classList.remove("open"))
+    observer.disconnect()
+  })
+
+  explorerLists.forEach((list) => observer.observe(list, { childList: true }))
+}
+
+document.addEventListener("nav", closeExplorerDropdownsAfterRender)
+
+type ParticleLibrary = {
+  load: (elementId: string, configPath: string) => void
+}
+
+let isLoadingSidebarParticles = false
+let sidebarParticleResizeObserver: ResizeObserver | undefined
+
+function getNeumorphismAssetUrl(asset: string): string {
+  const domain = document.querySelector<HTMLMetaElement>('meta[property="twitter:domain"]')?.content
+  let basePath = ""
+  if (domain) {
+    try {
+      const configuredPath = new URL(`https://${domain}`).pathname.replace(/\/$/, "")
+      if (configuredPath && window.location.pathname.startsWith(configuredPath)) {
+        basePath = configuredPath
+      }
+    } catch {}
+  }
+
+  return new URL(`${basePath}/static/neumorphism/${asset}`, window.location.origin).href
+}
+
+function initializeSidebarParticles() {
+  if (document.body.dataset.slug === "index") {
+    sidebarParticleResizeObserver?.disconnect()
+    return
+  }
+
+  const sidebars = document.querySelectorAll<HTMLElement>(
+    "#quartz-body > .left.sidebar, #quartz-body > .right.sidebar",
+  )
+  if (sidebars.length === 0) return
+
+  const particleWindow = window as Window & { particlesJS?: ParticleLibrary }
+  const particles = particleWindow.particlesJS
+  if (!particles) {
+    if (isLoadingSidebarParticles) return
+    isLoadingSidebarParticles = true
+
+    const script = document.createElement("script")
+    script.src = getNeumorphismAssetUrl("particles.js")
+    script.dataset.persist = ""
+    script.onload = () => {
+      isLoadingSidebarParticles = false
+      initializeSidebarParticles()
+    }
+    script.onerror = () => {
+      isLoadingSidebarParticles = false
+      script.remove()
+    }
+    document.head.appendChild(script)
+    return
+  }
+
+  if (!sidebarParticleResizeObserver) {
+    sidebarParticleResizeObserver = new ResizeObserver(() => {
+      window.dispatchEvent(new Event("resize"))
+    })
+  }
+  sidebarParticleResizeObserver.disconnect()
+
+  sidebars.forEach((sidebar) => {
+    let host = sidebar.querySelector<HTMLDivElement>(".sidebar-particles")
+    if (!host) {
+      host = document.createElement("div")
+      host.className = "sidebar-particles"
+      host.id = sidebar.classList.contains("left")
+        ? "left-sidebar-particles"
+        : "right-sidebar-particles"
+      host.setAttribute("aria-hidden", "true")
+      sidebar.prepend(host)
+    }
+
+    if (host.dataset.particlesInitialized !== "true") {
+      host.dataset.particlesInitialized = "true"
+      particles.load(host.id, getNeumorphismAssetUrl("assets/particles.json"))
+    }
+    sidebarParticleResizeObserver.observe(host)
+  })
+}
+
+document.addEventListener("nav", initializeSidebarParticles)
+
+document.addEventListener("submit", (event) => {
+  const form = event.target
+  if (!(form instanceof HTMLFormElement) || form.id !== "contact-form") return
+
+  event.preventDefault()
+  const formData = new FormData(form)
+  const name = String(formData.get("name") ?? "").trim()
+  const email = String(formData.get("email") ?? "").trim()
+  const subject = String(formData.get("subject") ?? "").trim()
+  const message = String(formData.get("message") ?? "").trim()
+  const body = [`Nombre: ${name}`, `Correo: ${email}`, "", message].join("\n")
+  const mailto = new URL("mailto:victorhugomnds@hotmail.com")
+  mailto.searchParams.set("subject", subject)
+  mailto.searchParams.set("body", body)
+  window.location.href = mailto.toString()
+})
+
 const cleanupFns: Set<(...args: any[]) => void> = new Set()
 window.addCleanup = (fn) => cleanupFns.add(fn)
 
