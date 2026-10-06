@@ -1,6 +1,29 @@
 
 ---
-- Tags: #Presidential
+aliases: []
+tags:
+  - writeup
+  - maquina
+  - vulnhub
+  - linux
+  - lfi
+  - rce
+  - reverse-shell
+  - phpmyadmin
+  - capabilities
+maquina: Presidential 1
+plataforma: Linux
+dificultad: null
+fecha_resolucion: null
+tecnicas_clave:
+  - phpMyAdmin LFI
+  - LFI to RCE
+  - tar capability abuse
+cve: []
+vector_inicial: Web application and phpMyAdmin
+escalada_privilegios: tarS capability abuse to read root's SSH key
+autor: null
+writeup_url: https://www.vulnhub.com/entry/presidential-1,500/
 ---
 
 - **Máquina Presidential 1**: [https://www.vulnhub.com/entry/presidential-1,500/](https://www.vulnhub.com/entry/presidential-1,500/)

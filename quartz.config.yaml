@@ -168,8 +168,14 @@ plugins:
       priority: 20
   - source: "@quartz-community/graph"
     enabled: true
+    options:
+      localGraph:
+        depth: 2
+        showTags: true
+      globalGraph:
+        showTags: true
     layout:
-      position: right
+      position: left
       priority: 20
   - source: "@quartz-community/search"
     enabled: true
@@ -233,6 +239,7 @@ plugins:
       links:
         GitHub: https://github.com/jackyzha0/quartz
         Discord Community: https://discord.gg/cRFFHYye7t
+        Contacto: ../contacto
     layout:
       position: footer
       priority: 50
@@ -258,8 +265,18 @@ plugins:
         - description
         - tags
         - aliases
+        - maquina
+        - plataforma
+        - dificultad
+        - fecha_resolucion
+        - tecnicas_clave
+        - cve
+        - vector_inicial
+        - escalada_privilegios
+        - autor
+        - writeup_url
       excludedProperties: []
-      hidePropertiesView: false
+      hidePropertiesView: true
       delimiters: ---
       language: yaml
     order: 5

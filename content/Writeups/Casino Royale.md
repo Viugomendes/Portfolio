@@ -1,6 +1,35 @@
 
 ---
-- Tags: #vulhub #CasinoRoyale 
+aliases: []
+tags:
+  - writeup
+  - maquina
+  - vulnhub
+  - linux
+  - sqli
+  - csrf
+  - xxe
+  - lfi
+  - rce
+  - reverse-shell
+  - suid
+maquina: Casino Royale 1
+plataforma: Linux
+dificultad: null
+fecha_resolucion: 2026-10-06
+tecnicas_clave:
+  - SQL injection
+  - CSRF
+  - XXE
+  - FTP upload to RCE
+  - SUID privilege escalation
+cve: []
+vector_inicial: Web application with cookie bypass and SQL injection
+escalada_privilegios: SUID binary mi6_detect_test runs bash -p
+autor: null
+writeup_url: https://www.vulnhub.com/entry/casino-royale-1,287/
+
+---
 ---
 
 - **Máquina Casino Royale 1**: [https://www.vulnhub.com/entry/casino-royale-1,287/](https://www.vulnhub.com/entry/casino-royale-1,287/)

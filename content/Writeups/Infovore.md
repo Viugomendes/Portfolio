@@ -1,6 +1,31 @@
 
 ---
-- Tags: #Infovore #vulnhub
+aliases: []
+tags:
+    - writeup
+    - maquina
+    - vulnhub
+    - linux
+    - lfi
+    - rce
+    - reverse-shell
+    - docker
+    - ssh
+    - capabilities
+maquina: Infovore 1
+plataforma: Linux
+dificultad: null
+fecha_resolucion: null
+tecnicas_clave:
+    - LFI to RCE through PHP info and file upload
+    - Docker escape
+    - SSH key reuse
+    - tar capability abuse
+cve: []
+vector_inicial: LFI to RCE through PHP info and file upload
+escalada_privilegios: Docker group escape and tar capability abuse
+autor: null
+writeup_url: https://www.vulnhub.com/entry/infovore-1,496/
 ---
 
 - **Máquina Infovore 1**: [https://www.vulnhub.com/entry/infovore-1,496/](https://www.vulnhub.com/entry/infovore-1,496/)
