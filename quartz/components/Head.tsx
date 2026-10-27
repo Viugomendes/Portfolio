@@ -25,7 +25,7 @@ export default (() => {
     const url = new URL(`https://${cfg.baseUrl ?? "example.com"}`)
     const path = url.pathname as FullSlug
     const baseDir = fileData.slug === "404" ? path : pathToRoot(fileData.slug!)
-    const iconPath = `${joinSegments(baseDir, "static/icon.png")}?v=2`
+    const iconPath = joinSegments(baseDir, "static/icon.png")
 
     // Url of current page
     const socialUrl =
@@ -56,12 +56,6 @@ export default (() => {
               <link rel="stylesheet" href={googleFontSubsetHref(cfg.theme, cfg.pageTitle)} />
             )}
           </>
-        )}
-        {fileData.slug === "index" && (
-          <link
-            rel="stylesheet"
-            href="https://fonts.googleapis.com/css?family=Raleway&display=swap"
-          />
         )}
         <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />

@@ -4,8 +4,7 @@ configuration:
   pageTitleSuffix: ""
   enableSPA: true
   enablePopovers: true
-  analytics:
-    provider: plausible
+  analytics: null
   locale: en-US
   baseUrl: viugomendes.github.io/Portfolio
   ignorePatterns:
@@ -148,7 +147,7 @@ plugins:
   - source: "@quartz-community/og-image"
     enabled: true
   - source: "@quartz-community/cname"
-    enabled: true
+    enabled: false
   - source: "@quartz-community/canvas-page"
     enabled: true
   - source: "@quartz-community/content-page"
@@ -237,9 +236,9 @@ plugins:
     enabled: true
     options:
       links:
-        GitHub: https://github.com/jackyzha0/quartz
-        Discord Community: https://discord.gg/cRFFHYye7t
-        Contacto: ../contacto
+        GitHub: https://github.com/Viugomendes
+        LinkedIn: https://www.linkedin.com/in/victorhugomnds/
+        Contact: https://viugomendes.github.io/Portfolio/contacto
     layout:
       position: footer
       priority: 50
@@ -265,15 +264,15 @@ plugins:
         - description
         - tags
         - aliases
-        - maquina
-        - plataforma
-        - dificultad
-        - fecha_resolucion
-        - tecnicas_clave
+        - machine
+        - platform
+        - difficulty
+        - date_solved
+        - key_techniques
         - cve
-        - vector_inicial
-        - escalada_privilegios
-        - autor
+        - initial_vector
+        - privilege_escalation
+        - author
         - writeup_url
       excludedProperties: []
       hidePropertiesView: true

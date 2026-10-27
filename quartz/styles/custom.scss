@@ -6,6 +6,21 @@ $neumorphism-text: #fff;
 $neumorphism-primary: #ff073a;
 $neumorphism-font: "Raleway", sans-serif;
 
+// Narrower sidebars than Quartz's default $sidePanelWidth (320px)
+$portfolio-side-panel-width: 250px;
+
+@media all and ($desktop) {
+  .page > #quartz-body {
+    grid-template-columns: #{$portfolio-side-panel-width} auto #{$portfolio-side-panel-width};
+  }
+}
+
+@media all and ($tablet) {
+  .page > #quartz-body {
+    grid-template-columns: #{$portfolio-side-panel-width} auto;
+  }
+}
+
 :root {
   --secondary: #ff073a !important;
   --tertiary: #ff4d6d !important;
@@ -586,7 +601,7 @@ body:not([data-slug="index"]) footer a[href="../contacto"]:hover {
 
 @media all and ($tablet) {
   .page-header header {
-    left: calc(50% - #{$sidePanelWidth * 0.5});
+    left: calc(50% - #{$portfolio-side-panel-width * 0.5});
   }
 }
 

