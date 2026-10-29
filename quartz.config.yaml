@@ -166,7 +166,7 @@ plugins:
       position: header
       priority: 20
   - source: "@quartz-community/graph"
-    enabled: true
+    enabled: false
     options:
       localGraph:
         depth: 2
@@ -261,27 +261,22 @@ plugins:
     options:
       includeAll: false
       includedProperties:
-        - description
-        - tags
-        - aliases
         - machine
         - platform
         - difficulty
-        - date_solved
-        - key_techniques
-        - cve
-        - initial_vector
-        - privilege_escalation
-        - author
-        - writeup_url
+        - date
+        - techniques
+        - initial vector
+        - privilege escalation
+        - source
       excludedProperties: []
-      hidePropertiesView: true
+      hidePropertiesView: false
       delimiters: ---
       language: yaml
     order: 5
     layout:
-      position: beforeBody
-      priority: 15
+      position: left
+      priority: 20
       display: all
   - source: "@quartz-community/obsidian-plugin-excalidraw"
     enabled: true

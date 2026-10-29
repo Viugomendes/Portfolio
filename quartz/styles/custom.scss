@@ -154,11 +154,24 @@ body[data-slug="index"] .landing-icons .social-link:hover .social-svg {
   fill: #000;
 }
 
+// Icon hover labels are removed entirely.
+body[data-slug="index"] .landing-icons .label,
 body[data-slug="index"] .landing-icons .social-link:hover .label {
-  position: relative;
-  top: -2rem;
-  display: unset;
+  display: none !important;
 }
+
+// Manual nudges: slightly smaller contact icon, and shift the contact and
+// credentials glyphs a touch to the left so they read as visually centred.
+body[data-slug="index"] .landing-icons .email .social-svg {
+  transform: scale(0.86) translateX(-2%);
+  transform-origin: center;
+}
+
+body[data-slug="index"] .landing-icons .certifications .social-svg {
+  transform: scale(0.9) translateX(-3%);
+  transform-origin: center;
+}
+
 
 body[data-slug="index"] .landing-icons .email:hover .circle {
   animation:
@@ -335,14 +348,9 @@ body[data-slug="index"] footer li:has(> a[href="../contacto"]) {
   display: none;
 }
 
-article :is(h1, h2, h3, h4, h5, h6) > a.internal[href^="#"] {
-  color: var(--gray);
-  background: transparent !important;
-  border-radius: 0;
-}
-
-article :is(h1, h2, h3, h4, h5, h6) > a.internal[href^="#"]:hover {
-  color: var(--secondary);
+// Remove the link (anchor) icon that appears when hovering over a heading.
+article :is(h1, h2, h3, h4, h5, h6) > a[role="anchor"] {
+  display: none !important;
 }
 
 body:not([data-slug="index"]) .page > #quartz-body > footer {
@@ -419,22 +427,29 @@ body:not([data-slug="index"]) footer a[href="../contacto"]:hover {
 }
 
 .page-header header {
-  position: relative;
-  left: 50%;
-  z-index: 2;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
   display: flex;
   flex-direction: row;
   align-items: center;
   box-sizing: border-box;
-  width: 100vw;
+  width: 100%;
   min-height: 4rem;
   justify-content: flex-start;
   gap: 1rem;
-  margin: 0;
   padding: 0.5rem 2rem;
   background: var(--light);
   border-bottom: 1px solid var(--lightgray);
-  transform: translateX(-50%);
+  transform: none;
+  transition: transform 0.25s ease;
+}
+
+// Auto-hide on scroll down, reveal on scroll up (headroom pattern).
+body:not([data-slug="index"]).nav-hidden .page-header header {
+  transform: translateY(-100%);
 }
 
 .page-header header > .page-title {
@@ -563,18 +578,19 @@ body:not([data-slug="index"]) footer a[href="../contacto"]:hover {
   display: block;
   position: absolute;
   top: calc(100% + 0.4rem);
-  left: 0;
+  right: 0;
+  left: auto;
   z-index: 30;
   width: max-content;
-  min-width: 14rem;
+  min-width: 12rem;
   max-width: min(22rem, calc(100vw - 1rem));
   max-height: min(70vh, 32rem);
   overflow: auto;
   padding: 0.5rem;
   background: var(--light);
-  border: 1px solid var(--lightgray);
-  border-radius: 4px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  border: 0;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 
 .page-header header > .explorer .folder-outer.open > ul > li {
@@ -601,7 +617,7 @@ body:not([data-slug="index"]) footer a[href="../contacto"]:hover {
 
 @media all and ($tablet) {
   .page-header header {
-    left: calc(50% - #{$portfolio-side-panel-width * 0.5});
+    left: 0;
   }
 }
 
@@ -615,10 +631,10 @@ body:not([data-slug="index"]) footer a[href="../contacto"]:hover {
   }
 
   .page-header header {
-    left: 50%;
+    left: 0;
     gap: 0.5rem;
     padding: 0.5rem;
-    transform: translateX(-50%);
+    transform: none;
   }
 
   .page-header header > .page-title {
@@ -735,50 +751,77 @@ body:not([data-slug="index"]) footer a[href="../contacto"]:hover {
   }
 }
 
+// ============================================================================
+// Full-screen animated particle background (every page except the landing)
+// ============================================================================
+// A single fixed host (created in quartz.ts) sits BEHIND the whole page
+// (z-index: -1) so it never traps the header or search modal in a stacking
+// context. Its backdrop matches the page background so the content blends with
+// it (no visible edges); the red particles show through the transparent gutters.
+#page-particles {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--light);
+}
+
+#page-particles canvas {
+  position: absolute !important;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+body:not([data-slug="index"]) {
+  background: transparent !important;
+}
+
+body:not([data-slug="index"]) #quartz-root,
+body:not([data-slug="index"]) #quartz-root.page,
+body:not([data-slug="index"]) #quartz-body,
+body:not([data-slug="index"]) #quartz-body > .center {
+  background: transparent !important;
+}
+
+// Sidebars (left: machine properties, right: table of contents). We keep Quartz's
+// default sticky, full-height sidebar (position: sticky; top: 0; height: 100vh)
+// so the whole panel follows the page as you scroll; we only make the background
+// transparent so the particles show through, and let text inherit the palette.
 body:not([data-slug="index"]) #quartz-body > .left.sidebar,
 body:not([data-slug="index"]) #quartz-body > .right.sidebar {
-  position: relative;
-  align-self: stretch;
-  isolation: isolate;
-  overflow: hidden;
-  height: auto;
-  min-height: 100vh;
-  background: $neumorphism-background;
-  color: $neumorphism-text;
-  --light: #2b2d2f;
-  --lightgray: #484a4c;
-  --gray: #a3a3a3;
-  --darkgray: #dedede;
-  --dark: #fff;
-  --secondary: #ff073a;
-  --tertiary: #ff073a;
+  z-index: 1;
+  background: transparent;
+  border: 0;
 }
 
 body:not([data-slug="index"]) #quartz-body > .left.sidebar > .flex-component {
   display: none;
 }
 
-body:not([data-slug="index"]) #quartz-body > .left.sidebar > :not(.sidebar-particles),
-body:not([data-slug="index"]) #quartz-body > .right.sidebar > :not(.sidebar-particles) {
-  position: relative;
-  z-index: 1;
+// Readable content card: the breadcrumb/title block, the article and the footer
+// sit on an opaque surface so the moving particles never run behind the text.
+// The nav bar (<header>) keeps its own full-width styling and is NOT carded.
+body:not([data-slug="index"]) #quartz-body > .center > .page-header > .popover-hint,
+body:not([data-slug="index"]) #quartz-body > .center > article,
+body:not([data-slug="index"]) #quartz-body > .center > .page-footer {
+  background: var(--light);
 }
 
-body:not([data-slug="index"]) .sidebar-particles {
-  display: none;
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
+// Clear the fixed header: push the center content down so the breadcrumb and
+// title sit below it (and roughly align with the sidebar content at ~6rem).
+body:not([data-slug="index"]) #quartz-body > .center {
+  padding-top: 4.5rem;
 }
 
-body:not([data-slug="index"]) .sidebar-particles canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+body:not([data-slug="index"]) #quartz-body > .center > .page-header > .popover-hint {
+  padding: 1rem 1.75rem 0.25rem;
 }
+
+body:not([data-slug="index"]) #quartz-body > .center > article {
+  padding: 0.5rem 1.75rem 1.5rem;
+}
+
 
 .contact-page {
   width: min(100%, 42rem);
@@ -1004,15 +1047,16 @@ body[data-slug^="blog/"] .center > article {
 
 @media all and (max-width: 800px) {
   .page-header header {
-    left: 50%;
+    left: 0;
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     column-gap: 0.25rem;
     row-gap: 0.5rem;
-    width: 100vw;
+    width: 100%;
+    margin-left: 0;
     padding: 0.75rem;
-    transform: translateX(-50%);
+    transform: none;
   }
 
   .page-header header > .page-title {
@@ -1126,4 +1170,477 @@ body[data-slug^="blog/"] .center > article {
     box-shadow: none;
     transform: none !important;
   }
+}
+
+// ============================================================================
+// Contact & Certifications: no sidebars, content spans the full column
+// ============================================================================
+body[data-slug="contacto"] #quartz-body,
+body[data-slug="certifications"] #quartz-body {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  grid-template-areas:
+    "grid-header"
+    "grid-center"
+    "grid-footer";
+}
+
+body[data-slug="contacto"] #quartz-body > .left.sidebar,
+body[data-slug="contacto"] #quartz-body > .right.sidebar,
+body[data-slug="certifications"] #quartz-body > .left.sidebar,
+body[data-slug="certifications"] #quartz-body > .right.sidebar {
+  display: none;
+}
+
+// Keep the Certifications page out of the header explorer; it is reached from
+// the landing icon, like the contact page.
+.page-header header .explorer li:has(> a[href*="certifications"]) {
+  display: none !important;
+}
+
+body[data-slug="index"] footer li:has(> a[href="../certifications"]) {
+  display: none;
+}
+
+// ============================================================================
+// Machine info panel (left sidebar on writeups) — replaces the graph view
+// ============================================================================
+// A clean stacked list (no boxes, no borders), matching the table of contents,
+// that follows the page as you scroll. The plugin's default table/box styling
+// is overridden hard. An opaque backdrop keeps particles off the text; since it
+// matches the page background it reads as part of the page, not a card.
+body:not([data-slug="index"]) .note-properties,
+body:not([data-slug="index"]) .note-properties * {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+
+body:not([data-slug="index"]) .note-properties {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.25rem 1rem 0.25rem 0;
+  background: var(--light) !important;
+  font-size: 0.85rem;
+}
+
+// Hide the generic "Properties" summary and the comma separators between items.
+body:not([data-slug="index"]) .note-properties > summary.note-properties-header,
+body:not([data-slug="index"]) .note-properties-separator {
+  display: none !important;
+}
+
+// Linearise the properties table into a clean stacked list.
+body:not([data-slug="index"]) .note-properties-table,
+body:not([data-slug="index"]) .note-properties-table tbody,
+body:not([data-slug="index"]) .note-properties-row,
+body:not([data-slug="index"]) .note-properties-key,
+body:not([data-slug="index"]) .note-properties-value {
+  display: block;
+  width: 100%;
+  padding: 0;
+}
+
+body:not([data-slug="index"]) .note-properties-row {
+  margin: 0 0 0.55rem;
+}
+
+// First row (machine) becomes the panel title.
+body:not([data-slug="index"]) .note-properties-row:first-child {
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.5rem !important;
+  border-bottom: 1px solid var(--secondary) !important;
+}
+
+body:not([data-slug="index"]) .note-properties-row:first-child .note-properties-key {
+  display: none;
+}
+
+body:not([data-slug="index"]) .note-properties-row:first-child .note-properties-value {
+  color: var(--secondary);
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+body:not([data-slug="index"]) .note-properties-key {
+  margin-bottom: 0.1rem;
+  color: #8a8a8a;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+body:not([data-slug="index"]) .note-properties-value {
+  color: var(--dark);
+  line-height: 1.35;
+  overflow-wrap: break-word;
+}
+
+// key_techniques renders as a list: one technique per line, no commas.
+body:not([data-slug="index"]) .note-properties-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+body:not([data-slug="index"]) .note-properties-list .note-properties-text {
+  display: block;
+}
+
+body:not([data-slug="index"]) .note-properties a,
+body:not([data-slug="index"]) .note-properties-link {
+  color: var(--secondary) !important;
+  overflow-wrap: anywhere;
+}
+
+// ----------------------------------------------------------------------------
+// Table of contents: always expanded (no collapse toggle), follows the scroll.
+// ----------------------------------------------------------------------------
+body:not([data-slug="index"]) #quartz-body > .right.sidebar > .toc {
+  overflow: visible;
+  background: var(--light);
+}
+
+// Neutralise the collapse behaviour and hide the fold chevron.
+body:not([data-slug="index"]) .toc:has(button.toc-header.collapsed) {
+  flex: 0 1 auto !important;
+}
+
+body:not([data-slug="index"]) .toc-header {
+  pointer-events: none;
+  cursor: default;
+}
+
+body:not([data-slug="index"]) .toc-header .fold {
+  display: none !important;
+}
+
+body:not([data-slug="index"]) .toc-content.overflow {
+  max-height: none !important;
+}
+
+// ============================================================================
+// Certifications page
+// ============================================================================
+// Hide the date / reading-time meta on pages that are not articles.
+body[data-slug="certifications"] .content-meta,
+body[data-slug="contacto"] .content-meta {
+  display: none !important;
+}
+
+.certs-page {
+  position: relative;
+  width: 100%;
+  margin: 0;
+  color: var(--dark);
+}
+
+.certs-intro {
+  max-width: 44rem;
+  margin: 0 0 1.75rem;
+}
+
+.cert-section {
+  margin: 0 0 2.5rem;
+}
+
+.cert-section > h2 {
+  margin: 0 0 1.1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--secondary);
+  font-size: 1.35rem;
+}
+
+.cert-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+// Wide horizontal cards: credential preview on the left, details on the right.
+.cert-card {
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  background: var(--light);
+  border: 1px solid var(--lightgray);
+  border-radius: 10px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.cert-card:hover {
+  border-color: var(--secondary);
+  transform: translateY(-2px);
+}
+
+.cert-thumb {
+  display: block;
+  flex: 0 0 22rem;
+  align-self: stretch;
+  line-height: 0;
+  background: #111;
+}
+
+.cert-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 13rem;
+  object-fit: cover;
+}
+
+.cert-thumb-pdf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 13rem;
+  line-height: 1.2;
+  text-decoration: none;
+  background: linear-gradient(135deg, #0b1e3a, #0078d4);
+  color: #fff;
+}
+
+.cert-badge {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.cert-thumb-note {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.cert-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.25rem 1.5rem;
+}
+
+.cert-title {
+  margin: 0 0 0.4rem;
+  font-size: 1.25rem;
+}
+
+.cert-meta {
+  margin: 0 0 0.6rem;
+  color: var(--gray);
+  font-size: 0.9rem;
+}
+
+.cert-dot {
+  margin: 0 0.4rem;
+}
+
+.cert-desc {
+  margin: 0;
+  color: var(--darkgray);
+  font-size: 0.95rem;
+}
+
+.cert-empty {
+  margin: 0;
+  color: var(--gray);
+  font-style: italic;
+}
+
+// Credly button, pinned to the top-right of the page.
+.credly-button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  background: var(--secondary);
+  color: #fff !important;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.credly-button:hover {
+  background: var(--tertiary);
+  transform: translateY(-1px);
+}
+
+.credly-logo {
+  width: 1.2rem;
+  height: 1.2rem;
+  flex: 0 0 auto;
+}
+
+@media all and (max-width: 640px) {
+  .cert-card {
+    flex-direction: column;
+  }
+
+  .cert-thumb {
+    flex: none;
+  }
+}
+
+// ============================================================================
+// Minimal, Apple-style scrollbars (thin, rounded, no up/down arrow buttons)
+// ============================================================================
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(136, 136, 136, 0.4) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(136, 136, 136, 0.35);
+  border-radius: 8px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(136, 136, 136, 0.6);
+}
+
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+
+// Hide the inline autocomplete ghost text in search (it renders misaligned);
+// the tag/term suggestions dropdown below the input still provides completion.
+.search .search-container .ghost-text {
+  display: none !important;
+}
+
+// ============================================================================
+// "Download .md" button (right sidebar, below the table of contents)
+// ============================================================================
+body:not([data-slug="index"]) .md-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--lightgray);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dark);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+body:not([data-slug="index"]) .md-download:hover {
+  border-color: var(--secondary);
+  color: var(--secondary);
+  transform: translateY(-1px);
+}
+
+body:not([data-slug="index"]) .md-download svg {
+  flex: 0 0 auto;
+}
+
+// ============================================================================
+// Certificate lightbox (image viewer overlay)
+// ============================================================================
+.cert-thumb:not(.cert-thumb-pdf) {
+  cursor: zoom-in;
+}
+
+.cert-lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  cursor: zoom-out;
+}
+
+.cert-lightbox.open {
+  display: flex;
+}
+
+.cert-lightbox-img {
+  max-width: 92vw;
+  max-height: 88vh;
+  border-radius: 8px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+  cursor: default;
+}
+
+.cert-lightbox-close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.9rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.cert-lightbox-close:hover {
+  background: var(--secondary);
+}
+
+body.cert-lightbox-open {
+  overflow: hidden;
+}
+
+// Subtle "View credential (PDF)" link inside a certificate card.
+.cert-pdf-link {
+  display: inline-block;
+  width: auto;
+  margin-top: 0.7rem;
+  padding: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  color: var(--gray) !important;
+  font-size: 0.78rem;
+  font-weight: 400;
+  text-decoration: none;
+  border: 0;
+  border-radius: 0;
+  transition: color 0.2s ease;
+}
+
+.cert-pdf-link:hover {
+  color: var(--secondary) !important;
+  text-decoration: underline;
 }
