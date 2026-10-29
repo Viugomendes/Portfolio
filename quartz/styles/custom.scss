@@ -822,6 +822,18 @@ body:not([data-slug="index"]) #quartz-body > .center > article {
   padding: 0.5rem 1.75rem 1.5rem;
 }
 
+// On mobile the content spans the full width, hiding the particle backdrop.
+// Give it side gutters + rounded corners so the animated background shows along
+// the edges (and above/below), keeping the moving backdrop visible as on desktop.
+@media all and (max-width: 800px) {
+  body:not([data-slug="index"]) #quartz-body > .center > .page-header > .popover-hint,
+  body:not([data-slug="index"]) #quartz-body > .center > article,
+  body:not([data-slug="index"]) #quartz-body > .center > .page-footer {
+    margin-left: 14px;
+    margin-right: 14px;
+    border-radius: 10px;
+  }
+}
 
 .contact-page {
   width: min(100%, 42rem);
@@ -1486,8 +1498,26 @@ body[data-slug="contacto"] .content-meta {
     flex-direction: column;
   }
 
+  // Full-width image, so the card never forces horizontal overflow.
   .cert-thumb {
     flex: none;
+    width: 100%;
+  }
+
+  .cert-thumb img,
+  .cert-thumb-pdf {
+    min-height: 0;
+    aspect-ratio: 16 / 10;
+  }
+
+  // The Credly button flows at the top instead of overlapping the intro.
+  .credly-button {
+    position: static;
+    margin: 0 0 1.25rem;
+  }
+
+  .certs-intro {
+    max-width: none;
   }
 }
 
@@ -1643,4 +1673,12 @@ body.cert-lightbox-open {
 .cert-pdf-link:hover {
   color: var(--secondary) !important;
   text-decoration: underline;
+}
+
+// Remove the explorer's folder-tree guide line (border-left on the nested ul)
+// inside the header dropdowns, where it reads as a stray vertical bar.
+.page-header header > .explorer .folder-outer > ul {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: 0;
 }
