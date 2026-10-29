@@ -11,20 +11,20 @@ tags:
   - rce
   - reverse-shell
   - buffer-overflow
-machine: IMF 1
+machine: IMF
 platform: Linux
 difficulty: Beginner/Medium
-date_solved: 2026-09-18
-key_techniques:
+date: 2026-09-18
+techniques:
   - Type juggling
   - Boolean-based SQL injection
   - File upload to RCE
   - Buffer overflow
 cve: []
-initial_vector: IMF administrator web application
-privilege_escalation: Buffer overflow in the root-owned agent service
+initial vector: IMF administrator web application
+privilege escalation: Buffer overflow in the root-owned agent service
 author: null
-writeup_url: https://www.vulnhub.com/entry/imf-1,162/
+source: https://www.vulnhub.com/entry/imf-1,162/
 ---
 
 - **IMF 1 machine**: [https://www.vulnhub.com/entry/imf-1,162/](https://www.vulnhub.com/entry/imf-1,162/)
@@ -90,6 +90,8 @@ Once inside imfadministrator we have a potential way to enumerate valid users by
 
 We try SQL and other techniques to see if anything interesting turns up.
 Working through the OWASP Top 10 we find type juggling using Burp Suite.
+
+## Exploitation
 
 ### Burp Suite and Type Juggling
 To launch Burp Suite independently of a terminal we use the command:
@@ -277,7 +279,7 @@ stty rows 44 columns 184
 
 Once everything works, we can run *ls* and find flag5 *agentservices*.
 
-### Privilege escalation
+## Privilege escalation
 
 Since flag5 was agentservices, we search from the root for files containing the word agent.
 ```bash

