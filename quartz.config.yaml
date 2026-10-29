@@ -146,6 +146,8 @@ plugins:
     enabled: true
   - source: "@quartz-community/og-image"
     enabled: true
+    options:
+      colorScheme: darkMode
   - source: "@quartz-community/cname"
     enabled: false
   - source: "@quartz-community/canvas-page"

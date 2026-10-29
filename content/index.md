@@ -1,5 +1,7 @@
 ---
-title: VictorHugo
+title: Victor Hugo
+description: Cybersecurity & pentesting portfolio — VulnHub/CTF machine writeups, blog and certifications.
+socialImage: og-home.png
 unlisted: true
 ---
 
