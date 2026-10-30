@@ -246,7 +246,8 @@ if (!window.__portfolioScriptsInitialized) {
 	// "Download .md" button under the table of contents on writeup pages.
 	const initializeMdDownload = () => {
 		const slug = document.body.dataset.slug || ""
-		if (!slug.toLowerCase().startsWith("writeups/")) return
+		const lowerSlug = slug.toLowerCase()
+		if (!lowerSlug.startsWith("writeups/") || lowerSlug === "writeups/index") return
 		const right = document.querySelector("#quartz-body > .right.sidebar")
 		if (!right || right.querySelector(".md-download")) return
 		const configuredBasePath = document.body.dataset.basepath || ""
@@ -312,6 +313,49 @@ if (!window.__portfolioScriptsInitialized) {
 		},
 		true,
 	)
+
+	// Folder listings (/writeups, /blog): no hover preview on the cards, plus a
+	// discreet filter box with a live counter.
+	const initializeListingTools = () => {
+		const listing = document.querySelector(".page-listing")
+		if (!listing) return
+		listing.querySelectorAll("a.internal").forEach((a) => a.setAttribute("data-no-popover", "true"))
+		if (listing.querySelector(".listing-tools")) return
+		const items = Array.from(listing.querySelectorAll(".section-ul > .section-li"))
+		if (!items.length) return
+		const slug = (document.body.dataset.slug || "").toLowerCase()
+		const noun = slug.startsWith("blog") ? "post" : "writeup"
+		const total = items.length
+		const label = (shown) =>
+			(shown === total ? total : shown + " of " + total) + " " + noun + (total === 1 ? "" : "s")
+
+		const tools = document.createElement("div")
+		tools.className = "listing-tools"
+		const input = document.createElement("input")
+		input.type = "search"
+		input.className = "listing-filter"
+		input.placeholder = "Filter"
+		input.setAttribute("aria-label", "Filter " + noun + "s")
+		const count = document.createElement("span")
+		count.className = "listing-count"
+		count.textContent = label(total)
+		tools.append(count, input)
+
+		input.addEventListener("input", () => {
+			const q = input.value.trim().toLowerCase()
+			let shown = 0
+			items.forEach((li) => {
+				const match = !q || (li.textContent || "").toLowerCase().includes(q)
+				li.style.display = match ? "" : "none"
+				if (match) shown++
+			})
+			count.textContent = label(shown)
+		})
+		const ul = listing.querySelector(".section-ul")
+		ul.parentElement.insertBefore(tools, ul)
+	}
+	document.addEventListener("nav", initializeListingTools)
+	initializeListingTools()
 
 	// Contact form (content/contacto.md) opens the visitor's mail client
 	document.addEventListener("submit", (event) => {
