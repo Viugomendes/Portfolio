@@ -86,7 +86,7 @@ body[data-slug="index"] #landing h1 > a[role="anchor"] {
 
 body[data-slug="index"] .highlight-title {
   color: $neumorphism-primary;
-  text-shadow: 0.25rem 0.25rem 0.25rem $neumorphism-primary;
+  text-shadow: 0.12rem 0.12rem 0.2rem rgba(90, 0, 20, 0.55);
 }
 
 body[data-slug="index"] .landing-icons {
@@ -828,6 +828,7 @@ body:not([data-slug="index"]) #quartz-body > .center > article {
 @media all and (max-width: 800px) {
   body:not([data-slug="index"]) #quartz-body > .center > .page-header > .popover-hint,
   body:not([data-slug="index"]) #quartz-body > .center > article,
+  body:not([data-slug="index"]) #quartz-body > .center > .page-listing,
   body:not([data-slug="index"]) #quartz-body > .center > .page-footer {
     margin-left: 14px;
     margin-right: 14px;
@@ -934,31 +935,101 @@ body:not([data-slug="index"]) #quartz-body > .center > article {
   }
 }
 
-.section-ul > .section-li > .section {
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.4rem;
-  padding: 0.8rem 0;
-  border-bottom: 1px solid var(--lightgray);
+// Folder listings (/writeups, /blog): a grid of clickable cards that sit on the
+// same dark surface as the rest of the page content.
+.page-listing {
+  padding: 0.5rem 1.75rem 1.75rem;
+  background: var(--light);
 }
 
-.section-ul > .section-li > .section > .meta,
-.section-ul > .section-li > .section > .desc,
-.section-ul > .section-li > .section > .tags {
-  grid-column: 1;
+// "N items under this folder." adds nothing here.
+.page-listing > p:first-child {
+  display: none;
+}
+
+// The blog index uses a centred 1280px column for its title; match it so the
+// cards line up with the heading above.
+@media all and (min-width: 801px) {
+  body[data-slug="blog/index"] .page-listing {
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.section-ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.section-ul > .section-li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.section-ul > .section-li > .section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--lightgray);
+  border-radius: 10px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.section-ul > .section-li > .section:hover {
+  border-color: var(--secondary);
+  transform: translateY(-2px);
+}
+
+// Title first, date underneath (the markup puts the date first).
+.section-ul > .section-li > .section > .desc {
+  order: 1;
   margin: 0;
 }
 
+.section-ul > .section-li > .section > .desc h3 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+// Stretch the title link over the whole card so the card is clickable.
+.section-ul > .section-li > .section > .desc a::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
 .section-ul > .section-li > .section > .meta {
+  order: 2;
+  margin: 0;
   color: var(--gray);
   font-size: 0.8rem;
 }
 
 .section-ul > .section-li > .section > .tags {
+  order: 3;
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 0.75rem;
-  padding: 0;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.7rem 0 0;
   list-style: none;
+}
+
+// Keep cards tidy: at most five tags each (the three generic ones are hidden below).
+.section-ul > .section-li > .section > .tags li:nth-child(n + 9) {
+  display: none;
 }
 
 .section-ul > .section-li > .section > .tags li {
@@ -967,19 +1038,29 @@ body:not([data-slug="index"]) #quartz-body > .center > article {
   list-style: none;
   background: transparent !important;
   border: 0;
-  border-radius: 0;
 }
 
 .section-ul > .section-li > .section > .tags a.tag-link {
-  padding: 0;
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
   background: none !important;
+  border: 1px solid var(--lightgray);
+  border-radius: 999px;
   color: var(--gray);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
 }
 
 .section-ul > .section-li > .section > .tags a.tag-link:hover {
-  color: var(--dark);
-  text-decoration: underline;
+  color: var(--secondary);
+  border-color: var(--secondary);
+}
+
+// Tags every entry shares carry no information on a listing page.
+.section-ul > .section-li > .section > .tags li:has(> a[href$="/tags/writeup"]),
+.section-ul > .section-li > .section > .tags li:has(> a[href$="/tags/machine"]),
+.section-ul > .section-li > .section > .tags li:has(> a[href$="/tags/vulnhub"]),
+.section-ul > .section-li > .section > .tags li:has(> a[href$="/tags/blog"]) {
+  display: none;
 }
 
 body[data-slug="blog"] #quartz-body,
@@ -1681,4 +1762,50 @@ body.cert-lightbox-open {
   margin-left: 0;
   padding-left: 0;
   border-left: 0;
+}
+
+// Internal links inside blog posts: plain red text with an underline instead of
+// Quartz's highlighted pill, which is hard to read on the dark background.
+body[data-slug^="blog/"] article p a.internal {
+  padding: 0;
+  background: none !important;
+  color: var(--secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+// Listing tools: live counter + a quiet filter box, right-aligned above the cards.
+.listing-tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1rem;
+}
+
+.listing-count {
+  color: var(--gray);
+  font-size: 0.8rem;
+}
+
+.listing-filter {
+  width: 9rem;
+  padding: 0.3rem 0.1rem;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--lightgray);
+  border-radius: 0;
+  color: var(--dark);
+  font-size: 0.8rem;
+  outline: none;
+  transition: width 0.2s ease, border-color 0.2s ease;
+}
+
+.listing-filter::placeholder {
+  color: var(--gray);
+}
+
+.listing-filter:focus {
+  width: 14rem;
+  border-color: var(--secondary);
 }
