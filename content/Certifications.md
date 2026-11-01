@@ -42,6 +42,16 @@ title: Certifications
           <p class="cert-desc">Installing and configuring a fully customized Arch Linux setup geared towards offensive-security workflows.</p>
         </div>
       </article>
+      <article class="cert-card">
+        <a class="cert-thumb" data-no-popover="true" href="certificados/hack4u-introduccion-al-hacking.jpg" target="_blank" rel="noreferrer">
+          <img src="certificados/hack4u-introduccion-al-hacking.jpg" alt="hack4u certificate — Introduction to Hacking" loading="lazy" />
+        </a>
+        <div class="cert-body">
+          <h3 class="cert-title">Introduction to Hacking</h3>
+          <p class="cert-meta"><span class="cert-issuer">hack4u</span><span class="cert-dot">·</span><span class="cert-date">October 31, 2026</span></p>
+          <p class="cert-desc">53-hour course on enumerating, identifying and exploiting vulnerable systems, completed by passing all the practical assessments.</p>
+        </div>
+      </article>
     </div>
   </section>
 
