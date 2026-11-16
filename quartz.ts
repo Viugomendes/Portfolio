@@ -379,21 +379,36 @@ if (!window.__portfolioScriptsInitialized) {
 }
 `
 
+// The site is designed for dark mode only (the theme toggle is hidden in
+// custom.scss), so the theme is pinned to dark whatever the visitor's system
+// preference is. It runs in the render-blocking prescript, before first paint.
+const pinDarkTheme = `
+const pinDarkTheme = () => {
+	try {
+		localStorage.setItem("theme", "dark")
+	} catch {}
+	document.documentElement.setAttribute("saved-theme", "dark")
+	document.body?.classList.remove("theme-light")
+	document.body?.classList.add("theme-dark")
+}
+pinDarkTheme()
+// The darkmode plugin follows live system-theme changes; undo those as well.
+document.addEventListener("themechange", (event) => {
+	if (event.detail?.theme !== "dark") pinDarkTheme()
+})
+`
+
 const headerComponents = new Set([
   ...(layout.defaults.header ?? []),
   ...Object.values(layout.byPageType).flatMap((pageLayout) => pageLayout.header ?? []),
 ])
 
+const asList = (scripts?: string | string[]) =>
+  Array.isArray(scripts) ? scripts : scripts ? [scripts] : []
+
 for (const component of headerComponents) {
-  const existingScripts = component.afterDOMLoaded
-  component.afterDOMLoaded = [
-    ...(Array.isArray(existingScripts)
-      ? existingScripts
-      : existingScripts
-        ? [existingScripts]
-        : []),
-    portfolioScripts,
-  ]
+  component.beforeDOMLoaded = [...asList(component.beforeDOMLoaded), pinDarkTheme]
+  component.afterDOMLoaded = [...asList(component.afterDOMLoaded), portfolioScripts]
 }
 
 export { layout }

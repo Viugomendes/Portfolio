@@ -915,10 +915,12 @@ body:not([data-slug="index"]) #quartz-body > .center > article {
   font-size: 0.875rem;
 }
 
+// The dropdown sits on var(--light), so its text follows the palette instead of
+// a fixed white (which vanished on a light background).
 .page-header header > .explorer .folder-outer a,
 .page-header header > .explorer .folder-outer .folder-button,
 .page-header header > .explorer .folder-outer .folder-button span {
-  color: $neumorphism-text !important;
+  color: var(--dark) !important;
 }
 
 @media all and ($mobile) {
