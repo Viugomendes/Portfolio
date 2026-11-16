@@ -1,3 +1,3 @@
 @echo off
-cd C:\Users\victo\Desktop\Portfolio
+cd /d "%~dp0"
 npx quartz sync
